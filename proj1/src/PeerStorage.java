@@ -9,11 +9,12 @@ import java.util.Objects;
  * There should be at most one instance of this class.
  */
 public class PeerStorage {
-    private static final int max_size = 64000000;
+    private final int max_size;
     private final String path;
 
-    public PeerStorage(String path){
+    public PeerStorage(String path, int max_size){
         this.path = path;
+        this.max_size = max_size;
         createStorage();
     }
 
