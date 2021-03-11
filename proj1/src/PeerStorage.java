@@ -11,6 +11,9 @@ public class PeerStorage {
         createStorage();
     }
 
+    /**
+     * @brief Creates a storage directory.
+     **/
     private void createStorage(){
         File file = new File(path);
 
@@ -21,6 +24,11 @@ public class PeerStorage {
         }
     }
 
+    /**
+     * @brief Get occupied space in bytes.
+     *
+     * @return int representing the number of bytes stored.
+     **/
     private int getActualSize(){
         File storage= new File(path);
         int size = 0;
@@ -29,6 +37,13 @@ public class PeerStorage {
         return size;
     }
 
+    /**
+     * @brief Saves a chunk in the backup directory.
+     *
+     * @param id Chunk identifier.
+     * @param chunk Byte array of the chunk to be stored.
+     * @return true if successful, false otherwise.
+     **/
     public boolean saveChunk(String id, byte[] chunk){
         if(getActualSize() + chunk.length > max_size) return false;
 
