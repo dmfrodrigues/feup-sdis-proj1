@@ -39,4 +39,50 @@ public class Peer implements Remote {
         Registry registry = LocateRegistry.getRegistry();
         registry.bind(remote_obj_name, this);
     }
+
+    /**
+     * Backup file specified by pathname, with a certain replication degree.
+     *
+     * @param pathname          Pathname of file to be backed up
+     * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
+     */
+    public void backup(String pathname, int replicationDegree){
+        throw new NoSuchMethodException("backup; yet to come");
+    }
+
+    /**
+     * Restore file specified by pathname.
+     *
+     * That file's chunks are retrieved from peers, assembled and then saved to the provided pathname.
+     *
+     * @param pathname  Pathname of file to be restored
+     */
+    public void restore(String pathname){
+        throw new NoSuchMethodException("restore; yet to come");
+    }
+
+    /**
+     * Delete file specified by pathname.
+     *
+     * @param pathname  Pathname of file to be deleted over all peers
+     */
+    public void delete(String pathname){
+        throw new NoSuchMethodException("delete; yet to come");
+    }
+
+    /**
+     * Set space the peer may use to backup chunks from other machines.
+     *
+     * @param space_kbytes  Amount of space, in kilobytes (KB, K=1000)
+     */
+    public void reclaim(int space_kbytes){
+        throw new NoSuchMethodException("reclaim; yet to come");
+    }
+
+    /**
+     * Get state information on the peer.
+     */
+    public void state(){
+        throw new NoSuchMethodException("state; yet to come");
+    }
 }
