@@ -3,6 +3,11 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Objects;
 
+/**
+ * Manage peer storage.
+ *
+ * There should be at most one instance of this class.
+ */
 public class PeerStorage {
     private static final int max_size = 64000000;
     private final String path;
