@@ -5,9 +5,10 @@ import java.util.Objects;
 
 public class PeerStorage {
     private static final int max_size = 64000000;
-    private static final String path = "../backup/storage";
+    private final String path;
 
-    public PeerStorage(){
+    public PeerStorage(String path){
+        this.path = path;
         createStorage();
     }
 
