@@ -1,23 +1,27 @@
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.rmi.AlreadyBoundException;
 
 public class PeerDriver {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, AlreadyBoundException {
         if(args.length != 9){
             System.out.println("ERROR: not enough arguments");
             System.out.print(getUsage());
             return;
         }
 
+        String serviceAccessPoint = args[2];
+
         Peer peer = new Peer(
                 args[0],
                 Integer.parseInt(args[1]),
-                args[2],
                 new InetSocketAddress(InetAddress.getByName(args[3]), Integer.parseInt(args[4])),
                 new InetSocketAddress(InetAddress.getByName(args[5]), Integer.parseInt(args[6])),
                 new InetSocketAddress(InetAddress.getByName(args[7]), Integer.parseInt(args[8]))
         );
+
+        peer.bindAsRemoteObject(serviceAccessPoint);
     }
 
     private static String getUsage(){
