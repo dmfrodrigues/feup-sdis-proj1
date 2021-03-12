@@ -4,15 +4,15 @@ import java.io.OutputStream;
 import java.util.Objects;
 
 /**
- * Manage peer storage.
+ * Manage peer chunk storage.
  *
  * There should be at most one instance of this class.
  */
-public class PeerStorage {
+public class ChunkStorageManager {
     private final int max_size;
     private final String path;
 
-    public PeerStorage(String path, int max_size){
+    public ChunkStorageManager(String path, int max_size){
         this.path = path;
         this.max_size = max_size;
         createStorage();
@@ -36,7 +36,7 @@ public class PeerStorage {
      *
      * @return int representing the number of bytes stored.
      **/
-    private int getActualSize(){
+    private int getMemoryUsed(){
         File storage= new File(path);
         int size = 0;
         for (File file : Objects.requireNonNull(storage.listFiles()))
@@ -52,7 +52,7 @@ public class PeerStorage {
      * @return true if successful, false otherwise.
      **/
     public boolean saveChunk(String id, byte[] chunk){
-        if(getActualSize() + chunk.length > max_size) return false;
+        if(getMemoryUsed() + chunk.length > max_size) return false;
 
         try {
             OutputStream os = new FileOutputStream(path + "/" + id);
