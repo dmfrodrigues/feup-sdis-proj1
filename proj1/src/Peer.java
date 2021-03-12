@@ -13,6 +13,7 @@ import java.util.*;
 
 public class Peer implements Remote {
     private static final int LOCAL_SOCKET_PORT = 4040;
+    private static final int BUFFER_LENGTH = 80000;
 
     private final DatagramSocket localSocket;
 
@@ -38,6 +39,10 @@ public class Peer implements Remote {
         this.controlAddress = controlAddress;
         this.dataBroadcastAddress = dataBroadcastAddress;
         this.dataRecoveryAddress = dataRecoveryAddress;
+
+        PacketHandler packetHandler = new PacketHandler(this, localSocket);
+        Thread packetHandlerThread = new Thread(packetHandler);
+        packetHandlerThread.start();
     }
 
     public void bindAsRemoteObject(String remote_obj_name) throws RemoteException, AlreadyBoundException {
@@ -125,5 +130,33 @@ public class Peer implements Remote {
         int ret = storedMessageMap.get(key).size();
         storedMessageMap.get(key).clear();
         return ret;
+    }
+
+    public class PacketHandler implements Runnable {
+        private final Peer peer;
+        private final DatagramSocket socket;
+        private final MessageFactory messageFactory;
+
+        public PacketHandler(Peer peer, DatagramSocket socket){
+            this.peer = peer;
+            this.socket = socket;
+
+            messageFactory = new MessageFactory();
+        }
+
+        @Override
+        public void run() {
+            byte[] buf = new byte[BUFFER_LENGTH];
+            DatagramPacket packet = new DatagramPacket(buf, buf.length);
+            while(true){
+                try {
+                    socket.receive(packet);
+                    Message message = messageFactory.factoryMethod(packet);
+                    message.process(peer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }
