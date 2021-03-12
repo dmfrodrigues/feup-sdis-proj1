@@ -1,3 +1,6 @@
+import java.io.File;
+import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
@@ -6,6 +9,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.*;
 
 public class Peer implements Remote {
     private static final int LOCAL_SOCKET_PORT = 4040;
@@ -59,8 +63,12 @@ public class Peer implements Remote {
      * @param pathname          Pathname of file to be backed up
      * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
      */
-    public void backup(String pathname, int replicationDegree){
-        throw new NoSuchMethodException("backup; yet to come");
+    public void backup(String pathname, int replicationDegree) throws IOException {
+        ChunkedFile chunkedFile = new ChunkedFile(new File(pathname));
+        chunkedFile.readChunks();
+        Runnable runnable = new BackupRunnable(this, chunkedFile, replicationDegree);
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     /**
