@@ -1,9 +1,5 @@
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.Spliterator;
 
 public class ClientApp {
     private static String peerAccessPoint;
