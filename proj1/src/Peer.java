@@ -8,15 +8,16 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
 public class Peer implements Remote {
-    private static final int localSocketPort = 4040;
+    private static final int LOCAL_SOCKET_PORT = 4040;
+
     private final DatagramSocket localSocket;
 
     private final String version;
     private final int id;
 
-    private InetSocketAddress controlAddress;
-    private InetSocketAddress dataBroadcastAddress;
-    private InetSocketAddress dataRecoveryAddress;
+    private final InetSocketAddress controlAddress;
+    private final InetSocketAddress dataBroadcastAddress;
+    private final InetSocketAddress dataRecoveryAddress;
 
     public Peer(
             String version,
@@ -25,7 +26,7 @@ public class Peer implements Remote {
             InetSocketAddress dataBroadcastAddress,
             InetSocketAddress dataRecoveryAddress
     ) throws SocketException {
-        localSocket = new DatagramSocket(localSocketPort);
+        localSocket = new DatagramSocket(LOCAL_SOCKET_PORT);
 
         this.version = version;
         this.id = id;
