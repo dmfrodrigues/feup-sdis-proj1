@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.net.InetSocketAddress;
 
 public class PutchunkMessage extends Message {
@@ -27,7 +28,14 @@ public class PutchunkMessage extends Message {
 
     @Override
     public void process(Peer peer) {
-        throw new NoSuchMethodException("PutchunkMessage#process");
+        String chunkId = getFileId() + "-" + getChunkNo();
+        peer.getStorageManager().saveChunk(chunkId, body);
+        Message response = new StoredMessage(getVersion(), getSenderId(), getFileId(), getChunkNo(), getSocketAddress());
+        try {
+            peer.send(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public int getChunkNo() {
