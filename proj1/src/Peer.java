@@ -2,13 +2,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.rmi.AlreadyBoundException;
-import java.rmi.Remote;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-public class Peer implements Remote {
+public class Peer implements PeerInterface {
     private static final int LOCAL_SOCKET_PORT = 4040;
     private static final int BUFFER_LENGTH = 80000;
     /**
@@ -54,9 +55,32 @@ public class Peer implements Remote {
         packetHandlerThread.start();
     }
 
-    public void bindAsRemoteObject(String remote_obj_name) throws RemoteException, AlreadyBoundException {
+    public class CleanupRemoteObjectRunnable implements Runnable {
+        private String remoteObjName;
+
+        public CleanupRemoteObjectRunnable(String remoteObjName) {
+            this.remoteObjName = remoteObjName;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Registry registry = LocateRegistry.getRegistry();
+                registry.unbind(remoteObjName);
+            } catch (RemoteException | NotBoundException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    public void bindAsRemoteObject(String remoteObjName) throws RemoteException, AlreadyBoundException {
+        PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(this, 0);
+
         Registry registry = LocateRegistry.getRegistry();
-        registry.bind(remote_obj_name, this);
+        registry.bind(remoteObjName, stub);
+
+        CleanupRemoteObjectRunnable rmiCleanupRunnable = new CleanupRemoteObjectRunnable(remoteObjName);
+        Thread rmiCleanupThread = new Thread(rmiCleanupRunnable);
+        Runtime.getRuntime().addShutdownHook(rmiCleanupThread);
     }
 
     public String getVersion() {
@@ -104,8 +128,7 @@ public class Peer implements Remote {
      *
      * @param pathname  Pathname of file to be restored
      */
-    public void restore(String pathname) throws NoSuchMethodException {
-        throw new NoSuchMethodException("restore; yet to come");
+    public void restore(String pathname) {
     }
 
     /**
@@ -113,8 +136,7 @@ public class Peer implements Remote {
      *
      * @param pathname  Pathname of file to be deleted over all peers
      */
-    public void delete(String pathname) throws NoSuchMethodException {
-        throw new NoSuchMethodException("delete; yet to come");
+    public void delete(String pathname) {
     }
 
     /**
@@ -122,15 +144,13 @@ public class Peer implements Remote {
      *
      * @param space_kbytes  Amount of space, in kilobytes (KB, K=1000)
      */
-    public void reclaim(int space_kbytes) throws NoSuchMethodException {
-        throw new NoSuchMethodException("reclaim; yet to come");
+    public void reclaim(int space_kbytes) {
     }
 
     /**
      * Get state information on the peer.
      */
-    public void state() throws NoSuchMethodException {
-        throw new NoSuchMethodException("state; yet to come");
+    public void state() {
     }
 
     public void send(Message message) throws IOException {
@@ -171,8 +191,13 @@ public class Peer implements Remote {
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             while(true){
                 try {
+                    System.out.print("Received message: ");
                     socket.receive(packet);
                     Message message = messageFactory.factoryMethod(packet);
+                    if(message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
+                    if(message instanceof StoredMessage  ) System.out.println("STORED");
+                    if(message instanceof GetchunkMessage) System.out.println("GETCHUNK");
+                    if(message instanceof ChunkMessage   ) System.out.println("CHUNK");
                     message.process(peer);
                 } catch (IOException | NoSuchMethodException e) {
                     e.printStackTrace();
