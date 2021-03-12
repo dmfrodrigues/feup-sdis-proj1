@@ -26,10 +26,13 @@ public class TestApp {
                     break;
                 case "DELETE":
                     stub.delete(filepath);
+                    break;
                 case "RECLAIM":
                     stub.reclaim(max_size);
+                    break;
                 case "STATE":
                     stub.state();
+                    break;
                 default:
                     break;
             }
