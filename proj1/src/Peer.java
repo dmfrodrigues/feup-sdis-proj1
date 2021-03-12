@@ -11,7 +11,6 @@ import java.util.*;
 public class Peer implements Remote {
     private static final int LOCAL_SOCKET_PORT = 4040;
     private static final int BUFFER_LENGTH = 80000;
-    private static final String STORAGE_PATH = "storage/backup";
     /**
      * Initially reserved storage for backing up chunks (in bytes).
      */
@@ -47,7 +46,8 @@ public class Peer implements Remote {
         localSocket.joinGroup(this.dataBroadcastAddress.getAddress());
         localSocket.joinGroup(this.dataRecoveryAddress.getAddress());
 
-        storageManager = new ChunkStorageManager(STORAGE_PATH, INITIAL_STORAGE_SIZE);
+        String storagePath = id+"/storage/chunks";
+        storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
         PacketHandler packetHandler = new PacketHandler(this, localSocket);
         Thread packetHandlerThread = new Thread(packetHandler);
