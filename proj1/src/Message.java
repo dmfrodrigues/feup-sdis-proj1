@@ -42,11 +42,19 @@ abstract public class Message {
 
     public abstract void process(Peer peer);
 
+    public String getVersion(){
+        return version;
+    }
+
     public String getFileId() {
         return fileId;
     }
 
     public Integer getSenderId(){
         return senderId;
+    }
+
+    public InetSocketAddress getSocketAddress(){
+        return inetSocketAddress;
     }
 }
