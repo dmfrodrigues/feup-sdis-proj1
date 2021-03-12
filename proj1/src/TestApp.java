@@ -15,7 +15,7 @@ public class TestApp {
         }
 
         try{
-            Registry registry = LocateRegistry.getRegistry("localhost");
+            Registry registry = LocateRegistry.getRegistry();
             Peer stub = (Peer) registry.lookup(peerAccessPoint);
             switch (operation){
                 case "BACKUP":
