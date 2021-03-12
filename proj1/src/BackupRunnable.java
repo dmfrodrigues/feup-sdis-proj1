@@ -22,6 +22,7 @@ public class BackupRunnable implements Runnable {
     public void run() {
         int n = chunkedFile.getNumberChunks();
         for(int i = 0; i < n; ++i){
+            System.out.println("Sending chunk "+i);
             byte[] chunk = chunkedFile.getChunk(i);
             PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), chunkedFile.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
@@ -29,6 +30,7 @@ public class BackupRunnable implements Runnable {
             do {
                 try {
                     peer.send(message);
+                    System.out.println("    Sent chunk "+i);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -36,6 +38,7 @@ public class BackupRunnable implements Runnable {
                     sleep(WAIT_MILLIS);
                 } catch (InterruptedException e) {}
                 numStored = peer.popStoredMessages(message);
+                System.out.println("    Got " + numStored + " stored messages");
             } while(numStored < replicationDegree);
         }
     }

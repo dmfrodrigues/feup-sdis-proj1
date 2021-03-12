@@ -16,7 +16,7 @@ public class TestApp {
 
         try{
             Registry registry = LocateRegistry.getRegistry();
-            Peer stub = (Peer) registry.lookup(peerAccessPoint);
+            PeerInterface stub = (PeerInterface) registry.lookup(peerAccessPoint);
             switch (operation){
                 case "BACKUP":
                     stub.backup(filepath, replicationDegree);

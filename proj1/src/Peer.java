@@ -168,8 +168,9 @@ public class Peer implements PeerInterface {
     }
     public int popStoredMessages(PutchunkMessage putchunkMessage){
         Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
-        int ret = storedMessageMap.get(key).size();
-        storedMessageMap.get(key).clear();
+        Set<Integer> storedMessages = storedMessageMap.get(key);
+        int ret = (storedMessages != null ? storedMessages.size() : 0);
+        if(storedMessages != null) storedMessages.clear();
         return ret;
     }
 
@@ -191,8 +192,8 @@ public class Peer implements PeerInterface {
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             while(true){
                 try {
-                    System.out.print("Received message: ");
                     socket.receive(packet);
+                    System.out.print("Received message: ");
                     Message message = messageFactory.factoryMethod(packet);
                     if(message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
                     if(message instanceof StoredMessage  ) System.out.println("STORED");
