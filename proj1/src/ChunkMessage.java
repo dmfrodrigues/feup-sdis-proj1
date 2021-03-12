@@ -1,7 +1,7 @@
 import java.net.InetSocketAddress;
 
 public class ChunkMessage extends Message {
-    private int chunkNo;
+    private final int chunkNo;
     private final byte[] body;
 
     public ChunkMessage(String version, int senderId, String fileId, int chunkNo, byte[] body, InetSocketAddress inetSocketAddress){

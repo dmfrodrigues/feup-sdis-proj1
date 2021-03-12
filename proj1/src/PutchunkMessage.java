@@ -1,7 +1,7 @@
 import java.net.InetSocketAddress;
 
 public class PutchunkMessage extends Message {
-    private int chunkNo;
+    private final int chunkNo;
     private final int replicationDeg;
     private final byte[] body;
 

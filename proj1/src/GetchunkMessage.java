@@ -1,7 +1,7 @@
 import java.net.InetSocketAddress;
 
 public class GetchunkMessage extends Message {
-    private int chunkNo;
+    private final int chunkNo;
 
     public GetchunkMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
         super(version, "GETCHUNK", senderId, fileId, inetSocketAddress);
