@@ -1,9 +1,6 @@
 import java.io.File;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.rmi.AlreadyBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -20,7 +17,7 @@ public class Peer implements Remote {
      */
     private static final int INITIAL_STORAGE_SIZE = 1000000000;
 
-    private final DatagramSocket localSocket;
+    private final MulticastSocket localSocket;
 
     private final String version;
     private final int id;
@@ -37,15 +34,18 @@ public class Peer implements Remote {
             InetSocketAddress controlAddress,
             InetSocketAddress dataBroadcastAddress,
             InetSocketAddress dataRecoveryAddress
-    ) throws SocketException {
-        localSocket = new DatagramSocket(LOCAL_SOCKET_PORT);
-
+    ) throws IOException {
         this.version = version;
         this.id = id;
 
         this.controlAddress = controlAddress;
         this.dataBroadcastAddress = dataBroadcastAddress;
         this.dataRecoveryAddress = dataRecoveryAddress;
+
+        localSocket = new MulticastSocket(LOCAL_SOCKET_PORT);
+        localSocket.joinGroup(this.controlAddress.getAddress());
+        localSocket.joinGroup(this.dataBroadcastAddress.getAddress());
+        localSocket.joinGroup(this.dataRecoveryAddress.getAddress());
 
         storageManager = new ChunkStorageManager(STORAGE_PATH, INITIAL_STORAGE_SIZE);
 
