@@ -1,7 +1,7 @@
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
-public class ClientApp {
+public class TestApp {
     private static String peerAccessPoint;
     private static String operation;
     private static String filepath;
@@ -68,7 +68,7 @@ public class ClientApp {
     private static String getUsage(){
         return
                 "Usage:\n"+
-                        "    java ClientApp PEER_ACCESS_POINT OPERATION OPERAND_1 OPERAND_2\n"+
+                        "    java TestApp PEER_ACCESS_POINT OPERATION OPERAND_1 OPERAND_2\n"+
                         "    PEER_ACCESS_POINT       Name of the remote object providing the service\n"+
                         "    OPERATION               The operation to be executed: BACKUP, RESTORE, DELETE, RECLAIM or STATE\n"+
                         "    OPERAND_1               The path name of the file to BACKUP/RESTORE/DELETE, or, in the case of RECLAIM\n"+
