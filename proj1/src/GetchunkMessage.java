@@ -18,7 +18,7 @@ public class GetchunkMessage extends Message {
     }
 
     @Override
-    public void process(Peer peer) {
+    public void process(Peer peer) throws NoSuchMethodException {
         throw new NoSuchMethodException("GetchunkMessage#process");
     }
 }

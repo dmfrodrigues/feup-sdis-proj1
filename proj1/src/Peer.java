@@ -96,7 +96,7 @@ public class Peer implements Remote {
      *
      * @param pathname  Pathname of file to be restored
      */
-    public void restore(String pathname){
+    public void restore(String pathname) throws NoSuchMethodException {
         throw new NoSuchMethodException("restore; yet to come");
     }
 
@@ -105,7 +105,7 @@ public class Peer implements Remote {
      *
      * @param pathname  Pathname of file to be deleted over all peers
      */
-    public void delete(String pathname){
+    public void delete(String pathname) throws NoSuchMethodException {
         throw new NoSuchMethodException("delete; yet to come");
     }
 
@@ -114,14 +114,14 @@ public class Peer implements Remote {
      *
      * @param space_kbytes  Amount of space, in kilobytes (KB, K=1000)
      */
-    public void reclaim(int space_kbytes){
+    public void reclaim(int space_kbytes) throws NoSuchMethodException {
         throw new NoSuchMethodException("reclaim; yet to come");
     }
 
     /**
      * Get state information on the peer.
      */
-    public void state(){
+    public void state() throws NoSuchMethodException {
         throw new NoSuchMethodException("state; yet to come");
     }
 
@@ -166,7 +166,7 @@ public class Peer implements Remote {
                     socket.receive(packet);
                     Message message = messageFactory.factoryMethod(packet);
                     message.process(peer);
-                } catch (IOException e) {
+                } catch (IOException | NoSuchMethodException e) {
                     e.printStackTrace();
                 }
             }
