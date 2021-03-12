@@ -13,4 +13,22 @@ public class Utils {
         }
         return -1;
     }
+
+    /**
+     * Convert array of bytes to string with hexadecimal representation.
+     *
+     * @param array     Array of bytes to convert
+     * @return          String with hexadecimal conversion
+     */
+    public static String bytesToHexString(byte[] array) {
+        StringBuilder hexString = new StringBuilder(2*array.length);
+        for (byte b : array) {
+            String hex = Integer.toHexString(0xff & b).toUpperCase();
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
 }

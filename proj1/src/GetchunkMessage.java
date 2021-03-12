@@ -1,7 +1,7 @@
 import java.net.InetSocketAddress;
 
 public class GetchunkMessage extends Message {
-    private int chunkNo;
+    private final int chunkNo;
 
     public GetchunkMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
         super(version, "GETCHUNK", senderId, fileId, inetSocketAddress);
@@ -15,5 +15,10 @@ public class GetchunkMessage extends Message {
         System.arraycopy(header       , 0, ret, 0, header.length);
         System.arraycopy(chunkNo_bytes, 0, ret, header.length, chunkNo_bytes.length);
         return ret;
+    }
+
+    @Override
+    public void process(Peer peer) {
+        throw new NoSuchMethodException("GetchunkMessage#process");
     }
 }

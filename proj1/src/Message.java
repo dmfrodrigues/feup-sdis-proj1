@@ -1,3 +1,4 @@
+import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 
 abstract public class Message {
@@ -33,5 +34,19 @@ abstract public class Message {
 
     public int getLength(){
         return this.getBytes().length;
+    }
+
+    public DatagramPacket getPacket(){
+        return new DatagramPacket(getBytes(), getLength(), inetSocketAddress);
+    }
+
+    public abstract void process(Peer peer);
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public Integer getSenderId(){
+        return senderId;
     }
 }

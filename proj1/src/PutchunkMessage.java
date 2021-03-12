@@ -1,7 +1,7 @@
 import java.net.InetSocketAddress;
 
 public class PutchunkMessage extends Message {
-    private int chunkNo;
+    private final int chunkNo;
     private final int replicationDeg;
     private final byte[] body;
 
@@ -23,5 +23,14 @@ public class PutchunkMessage extends Message {
         System.arraycopy(chunkNo_replicationDeg_bytes, 0, ret, header.length, chunkNo_replicationDeg_bytes.length);
         System.arraycopy(body                        , 0, ret, header.length + chunkNo_replicationDeg_bytes.length, body.length);
         return ret;
+    }
+
+    @Override
+    public void process(Peer peer) {
+        throw new NoSuchMethodException("PutchunkMessage#process");
+    }
+
+    public int getChunkNo() {
+        return chunkNo;
     }
 }
