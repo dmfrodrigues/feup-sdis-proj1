@@ -106,4 +106,9 @@ public class Peer implements Remote {
     public void state(){
         throw new NoSuchMethodException("state; yet to come");
     }
+
+    public void send(Message message) throws IOException {
+        DatagramPacket packet = message.getPacket();
+        localSocket.send(packet);
+    }
 }
