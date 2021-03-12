@@ -1,7 +1,7 @@
 import java.net.InetSocketAddress;
 
 public class StoredMessage extends Message {
-    private int chunkNo;
+    private final int chunkNo;
 
     public StoredMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
         super(version, "STORED", senderId, fileId, inetSocketAddress);
