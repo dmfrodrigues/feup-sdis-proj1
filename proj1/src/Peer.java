@@ -17,6 +17,7 @@ public class Peer implements PeerInterface {
     private static final int INITIAL_STORAGE_SIZE = 1000000000;
 
     private final MulticastSocket localSocket;
+    private final DatagramSocket sendSocket;
 
     private final String version;
     private final int id;
@@ -37,19 +38,21 @@ public class Peer implements PeerInterface {
         this.version = version;
         this.id = id;
 
+        sendSocket = new DatagramSocket();
+
         this.controlAddress = controlAddress;
         this.dataBroadcastAddress = dataBroadcastAddress;
         this.dataRecoveryAddress = dataRecoveryAddress;
 
-        localSocket = new MulticastSocket();
-        localSocket.joinGroup(this.controlAddress.getAddress());
+        localSocket = new MulticastSocket(dataBroadcastAddress.getPort());
+        //localSocket.joinGroup(this.controlAddress.getAddress());
         localSocket.joinGroup(this.dataBroadcastAddress.getAddress());
-        localSocket.joinGroup(this.dataRecoveryAddress.getAddress());
+        //localSocket.joinGroup(this.dataRecoveryAddress.getAddress());
 
         String storagePath = id+"/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        PacketHandler packetHandler = new PacketHandler(this, localSocket);
+        PacketHandler packetHandler = new PacketHandler(this);
         Thread packetHandlerThread = new Thread(packetHandler);
         packetHandlerThread.start();
     }
@@ -154,7 +157,7 @@ public class Peer implements PeerInterface {
 
     public void send(Message message) throws IOException {
         DatagramPacket packet = message.getPacket();
-        localSocket.send(packet);
+        sendSocket.send(packet);
     }
 
     Map<Pair<String, Integer>, Set<Integer>> storedMessageMap =
@@ -175,12 +178,10 @@ public class Peer implements PeerInterface {
 
     public class PacketHandler implements Runnable {
         private final Peer peer;
-        private final DatagramSocket socket;
         private final MessageFactory messageFactory;
 
-        public PacketHandler(Peer peer, DatagramSocket socket){
+        public PacketHandler(Peer peer){
             this.peer = peer;
-            this.socket = socket;
 
             messageFactory = new MessageFactory();
         }
@@ -191,7 +192,8 @@ public class Peer implements PeerInterface {
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             while(true){
                 try {
-                    socket.receive(packet);
+                    localSocket.receive(packet);
+
                     System.out.print("Received message: ");
                     Message message = messageFactory.factoryMethod(packet);
                     if(message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
