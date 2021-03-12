@@ -10,7 +10,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class Peer implements PeerInterface {
-    private static final int LOCAL_SOCKET_PORT = 4040;
     private static final int BUFFER_LENGTH = 80000;
     /**
      * Initially reserved storage for backing up chunks (in bytes).
@@ -42,7 +41,7 @@ public class Peer implements PeerInterface {
         this.dataBroadcastAddress = dataBroadcastAddress;
         this.dataRecoveryAddress = dataRecoveryAddress;
 
-        localSocket = new MulticastSocket(LOCAL_SOCKET_PORT);
+        localSocket = new MulticastSocket();
         localSocket.joinGroup(this.controlAddress.getAddress());
         localSocket.joinGroup(this.dataBroadcastAddress.getAddress());
         localSocket.joinGroup(this.dataRecoveryAddress.getAddress());
