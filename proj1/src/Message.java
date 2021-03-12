@@ -34,4 +34,16 @@ abstract public class Message {
     public int getLength(){
         return this.getBytes().length;
     }
+
+    public DatagramPacket getPacket(){
+        return new DatagramPacket(getBytes(), getLength(), inetSocketAddress);
+    }
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public Integer getSenderId(){
+        return senderId;
+    }
 }

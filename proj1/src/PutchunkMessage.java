@@ -24,4 +24,8 @@ public class PutchunkMessage extends Message {
         System.arraycopy(body                        , 0, ret, header.length + chunkNo_replicationDeg_bytes.length, body.length);
         return ret;
     }
+
+    public int getChunkNo() {
+        return chunkNo;
+    }
 }

@@ -16,4 +16,8 @@ public class StoredMessage extends Message {
         System.arraycopy(chunkNo_bytes, 0, ret, header.length, chunkNo_bytes.length);
         return ret;
     }
+
+    public int getChunkNo() {
+        return chunkNo;
+    }
 }

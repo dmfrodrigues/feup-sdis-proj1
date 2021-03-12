@@ -40,6 +40,18 @@ public class Peer implements Remote {
         registry.bind(remote_obj_name, this);
     }
 
+    public String getVersion() {
+        return version;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public InetSocketAddress getDataBroadcastAddress() {
+        return dataBroadcastAddress;
+    }
+
     /**
      * Backup file specified by pathname, with a certain replication degree.
      *
