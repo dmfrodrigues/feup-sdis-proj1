@@ -111,4 +111,19 @@ public class Peer implements Remote {
         DatagramPacket packet = message.getPacket();
         localSocket.send(packet);
     }
+
+    Map<Pair<String, Integer>, Set<Integer>> storedMessageMap =
+            new HashMap<>();
+    public void pushStoredMessage(StoredMessage storedMessage) {
+        Pair<String, Integer> key = new Pair<>(storedMessage.getFileId(), storedMessage.getChunkNo());
+        if(!storedMessageMap.containsKey(key))
+            storedMessageMap.put(key, new HashSet<>());
+        storedMessageMap.get(key).add(storedMessage.getSenderId());
+    }
+    public int popStoredMessages(PutchunkMessage putchunkMessage){
+        Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
+        int ret = storedMessageMap.get(key).size();
+        storedMessageMap.get(key).clear();
+        return ret;
+    }
 }
