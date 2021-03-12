@@ -67,8 +67,16 @@ public class Peer implements Remote {
         return id;
     }
 
+    public InetSocketAddress getControlAddress() {
+        return controlAddress;
+    }
+
     public InetSocketAddress getDataBroadcastAddress() {
         return dataBroadcastAddress;
+    }
+
+    public InetSocketAddress getDataRecoveryAddress(){
+        return dataRecoveryAddress;
     }
 
     public ChunkStorageManager getStorageManager() {
