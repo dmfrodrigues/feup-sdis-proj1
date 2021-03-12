@@ -40,6 +40,8 @@ abstract public class Message {
         return new DatagramPacket(getBytes(), getLength(), inetSocketAddress);
     }
 
+    public abstract void process(Peer peer);
+
     public String getFileId() {
         return fileId;
     }

@@ -16,4 +16,9 @@ public class GetchunkMessage extends Message {
         System.arraycopy(chunkNo_bytes, 0, ret, header.length, chunkNo_bytes.length);
         return ret;
     }
+
+    @Override
+    public void process(Peer peer) {
+        throw new NoSuchMethodException("GetchunkMessage#process");
+    }
 }

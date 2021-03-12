@@ -17,6 +17,11 @@ public class StoredMessage extends Message {
         return ret;
     }
 
+    @Override
+    public void process(Peer peer) {
+        peer.pushStoredMessage(this);
+    }
+
     public int getChunkNo() {
         return chunkNo;
     }

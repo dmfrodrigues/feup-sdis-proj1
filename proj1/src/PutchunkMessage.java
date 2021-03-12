@@ -25,6 +25,11 @@ public class PutchunkMessage extends Message {
         return ret;
     }
 
+    @Override
+    public void process(Peer peer) {
+        throw new NoSuchMethodException("PutchunkMessage#process");
+    }
+
     public int getChunkNo() {
         return chunkNo;
     }

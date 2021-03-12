@@ -22,4 +22,9 @@ public class ChunkMessage extends Message {
         System.arraycopy(body         , 0, ret, header.length + chunkNo_bytes.length, body.length);
         return ret;
     }
+
+    @Override
+    public void process(Peer peer) {
+        throw new NoSuchMethodException("ChunkMessage#process");
+    }
 }
