@@ -52,7 +52,7 @@ public class Peer implements PeerInterface {
         String storagePath = id+"/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        PacketHandler packetHandler = new PacketHandler(this);
+        PacketHandler packetHandler = new PacketHandler(this, localSocket);
         Thread packetHandlerThread = new Thread(packetHandler);
         packetHandlerThread.start();
     }
@@ -178,10 +178,12 @@ public class Peer implements PeerInterface {
 
     public class PacketHandler implements Runnable {
         private final Peer peer;
+        private final MulticastSocket socket;
         private final MessageFactory messageFactory;
 
-        public PacketHandler(Peer peer){
+        public PacketHandler(Peer peer, MulticastSocket socket){
             this.peer = peer;
+            this.socket = socket;
 
             messageFactory = new MessageFactory();
         }
@@ -192,7 +194,7 @@ public class Peer implements PeerInterface {
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             while(true){
                 try {
-                    localSocket.receive(packet);
+                    socket.receive(packet);
 
                     System.out.print("Received message: ");
                     Message message = messageFactory.factoryMethod(packet);
