@@ -129,9 +129,8 @@ public class Peer implements PeerInterface {
      * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
      */
     public void backup(String pathname, int replicationDegree) throws IOException {
-        ChunkedFile chunkedFile = new ChunkedFile(new File(pathname));
-        chunkedFile.readChunks();
-        Runnable runnable = new BackupRunnable(this, chunkedFile, replicationDegree);
+        FileChunkIterator fileChunkIterator = new FileChunkIterator(new File(pathname));
+        Runnable runnable = new BackupRunnable(this, fileChunkIterator, replicationDegree);
         Thread thread = new Thread(runnable);
         thread.start();
     }

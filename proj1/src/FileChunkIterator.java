@@ -1,22 +1,23 @@
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Iterator;
+import java.util.function.Consumer;
 
-public class ChunkedFile {
+public class FileChunkIterator implements Iterator<byte[]> {
     private final File file;
     private final int chunkSize;
-    private List<byte[]> chunks;
-    private String fileId;
+    private final String fileId;
+    byte[] buffer;
+    FileInputStream fileStream;
 
     /**
      * @brief Construct ChunkedFile.
      *
      * @param file      File to parse
      */
-    public ChunkedFile(File file) throws IOException {
+    public FileChunkIterator(File file) throws IOException {
         this(file, 64000);
     }
     /**
@@ -25,47 +26,13 @@ public class ChunkedFile {
      * @param file      File to parse
      * @param chunkSize Chunk size, in bytes; defaults to 64kB = 64000B
      */
-    public ChunkedFile(File file, int chunkSize) throws IOException {
+    public FileChunkIterator(File file, int chunkSize) throws IOException {
         this.file = file;
         this.chunkSize = chunkSize;
-        chunks = new ArrayList<>();
 
         fileId = createFileId();
-    }
-
-    public void readChunks() throws IOException {
-        final FileInputStream fileStream = new FileInputStream(file);
-
-        int size;
-        byte[] buffer = new byte[chunkSize];
-        do {
-            size = fileStream.read(buffer);
-            chunks.add(Arrays.copyOf(buffer, size));
-        } while(size == chunkSize);
-    }
-
-    public void writeChunks() throws IOException {
-        final FileOutputStream fileStream = new FileOutputStream(file);
-
-        for(final byte[] chunk: chunks){
-            fileStream.write(chunk);
-        }
-    }
-
-    public int getNumberChunks(){
-        return chunks.size();
-    }
-
-    public byte[] getChunk(int n){
-        return chunks.get(n);
-    }
-
-    public void setChunk(int n, byte[] chunk){
-        chunks.set(n, chunk);
-    }
-
-    public void pushChunk(byte[] chunk){
-        chunks.add(chunk);
+        buffer = new byte[this.chunkSize];
+        fileStream = new FileInputStream(this.file);
     }
 
     private String createFileId() throws IOException {
@@ -98,5 +65,44 @@ public class ChunkedFile {
 
     public String getFileId(){
         return fileId;
+    }
+
+    /**
+     * Length of chunked file, in chunks.
+     *
+     * If the file size is an exact multiple of the chunk size, an extra empty chunk is considered at the end.
+     *
+     * @return  Length of chunked file, in chunks
+     */
+    public int length(){
+        long l = file.length();
+        long ret = l/chunkSize + (l%chunkSize == 0 ? 1 : 0);
+        return (int) ret;
+    }
+
+    long nextIndex = 0;
+
+    @Override
+    public boolean hasNext() {
+        return nextIndex < length();
+    }
+
+    @Override
+    public byte[] next() {
+        int size = 0;
+        try {
+            size = fileStream.read(buffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        ++nextIndex;
+        return Arrays.copyOf(buffer, size);
+    }
+
+    @Override
+    public void forEachRemaining(Consumer<? super byte[]> action) {
+        while(hasNext()){
+            action.accept(next());
+        }
     }
 }

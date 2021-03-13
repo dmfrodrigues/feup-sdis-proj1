@@ -9,22 +9,22 @@ public class BackupRunnable implements Runnable {
     private static final int WAIT_MILLIS = 1000;
 
     private Peer peer;
-    private ChunkedFile chunkedFile;
+    private FileChunkIterator fileChunkIterator;
     private int replicationDegree;
 
-    public BackupRunnable(Peer peer, ChunkedFile chunkedFile, int replicationDegree){
+    public BackupRunnable(Peer peer, FileChunkIterator fileChunkIterator, int replicationDegree){
         this.peer = peer;
-        this.chunkedFile = chunkedFile;
+        this.fileChunkIterator = fileChunkIterator;
         this.replicationDegree = replicationDegree;
     }
 
     @Override
     public void run() {
-        int n = chunkedFile.getNumberChunks();
+        int n = fileChunkIterator.length();
         for(int i = 0; i < n; ++i){
             System.out.println("Sending chunk "+i);
-            byte[] chunk = chunkedFile.getChunk(i);
-            PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), chunkedFile.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
+            byte[] chunk = fileChunkIterator.next();
+            PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
             int numStored = 0;
             do {
