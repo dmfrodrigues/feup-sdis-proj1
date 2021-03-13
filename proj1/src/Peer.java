@@ -195,7 +195,6 @@ public class Peer implements PeerInterface {
             while(true){
                 try {
                     socket.receive(packet);
-
                     System.out.print("Received message: ");
                     Message message = messageFactory.factoryMethod(packet);
                     if(message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
