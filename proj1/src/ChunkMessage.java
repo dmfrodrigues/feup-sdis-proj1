@@ -24,7 +24,6 @@ public class ChunkMessage extends Message {
     }
 
     @Override
-    public void process(Peer peer) throws NoSuchMethodException {
-        throw new NoSuchMethodException("ChunkMessage#process");
+    public void process(Peer peer) {
     }
 }

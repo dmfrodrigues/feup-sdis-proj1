@@ -10,13 +10,11 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 public class Peer implements PeerInterface {
-    private static final int BUFFER_LENGTH = 80000;
     /**
      * Initially reserved storage for backing up chunks (in bytes).
      */
     private static final int INITIAL_STORAGE_SIZE = 1000000000;
 
-    private final MulticastSocket localSocket;
     private final DatagramSocket sendSocket;
 
     private final String version;
@@ -25,6 +23,10 @@ public class Peer implements PeerInterface {
     private final InetSocketAddress controlAddress;
     private final InetSocketAddress dataBroadcastAddress;
     private final InetSocketAddress dataRecoveryAddress;
+
+    private final MulticastSocket controlSocket;
+    private final MulticastSocket dataBroadcastSocket;
+    private final MulticastSocket dataRecoverySocket;
 
     private final ChunkStorageManager storageManager;
 
@@ -35,26 +37,37 @@ public class Peer implements PeerInterface {
             InetSocketAddress dataBroadcastAddress,
             InetSocketAddress dataRecoveryAddress
     ) throws IOException {
+        // Store arguments
         this.version = version;
         this.id = id;
-
-        sendSocket = new DatagramSocket();
 
         this.controlAddress = controlAddress;
         this.dataBroadcastAddress = dataBroadcastAddress;
         this.dataRecoveryAddress = dataRecoveryAddress;
 
-        localSocket = new MulticastSocket(dataBroadcastAddress.getPort());
-        //localSocket.joinGroup(this.controlAddress.getAddress());
-        localSocket.joinGroup(this.dataBroadcastAddress.getAddress());
-        //localSocket.joinGroup(this.dataRecoveryAddress.getAddress());
+        // Initializations that do not require arguments
+        sendSocket = new DatagramSocket();
 
-        String storagePath = id+"/storage/chunks";
+        // Initialize storage space
+        String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        PacketHandler packetHandler = new PacketHandler(this, localSocket);
-        Thread packetHandlerThread = new Thread(packetHandler);
-        packetHandlerThread.start();
+        // Create sockets
+        controlSocket       = new MulticastSocket(this.controlAddress      .getPort());
+        dataBroadcastSocket = new MulticastSocket(this.dataBroadcastAddress.getPort());
+        dataRecoverySocket  = new MulticastSocket(this.dataRecoveryAddress .getPort());
+        // Have sockets join corresponding groups
+        controlSocket      .joinGroup(this.controlAddress      .getAddress());
+        dataBroadcastSocket.joinGroup(this.dataBroadcastAddress.getAddress());
+        dataRecoverySocket .joinGroup(this.dataRecoveryAddress .getAddress());
+
+        // Create socket handlers
+        Thread controlSocketHandlerThread       = new Thread(new ControlSocketHandler      (this, controlSocket      ));
+        Thread dataBroadcastSocketHandlerThread = new Thread(new DataBroadcastSocketHandler(this, dataBroadcastSocket));
+        Thread dataRecoverySocketHandlerThread  = new Thread(new DataRecoverySocketHandler (this, dataRecoverySocket ));
+        controlSocketHandlerThread      .start();
+        dataBroadcastSocketHandlerThread.start();
+        dataRecoverySocketHandlerThread .start();
     }
 
     public class CleanupRemoteObjectRunnable implements Runnable {
@@ -176,35 +189,90 @@ public class Peer implements PeerInterface {
         return ret;
     }
 
-    public class PacketHandler implements Runnable {
+    public abstract class SocketHandler implements Runnable {
+        private static final int BUFFER_LENGTH = 80000;
+
         private final Peer peer;
-        private final MulticastSocket socket;
+        private final DatagramSocket socket;
+
         private final MessageFactory messageFactory;
 
-        public PacketHandler(Peer peer, MulticastSocket socket){
+        public SocketHandler(Peer peer, DatagramSocket socket) {
             this.peer = peer;
             this.socket = socket;
 
             messageFactory = new MessageFactory();
         }
 
+        public DatagramSocket getSocket() {
+            return socket;
+        }
+
+        public Peer getPeer() {
+            return peer;
+        }
+
+        abstract protected void handle(Message message);
+
         @Override
         public void run() {
             byte[] buf = new byte[BUFFER_LENGTH];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
-            while(true){
+            while (true) {
                 try {
                     socket.receive(packet);
-                    System.out.print("Received message: ");
                     Message message = messageFactory.factoryMethod(packet);
-                    if(message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
-                    if(message instanceof StoredMessage  ) System.out.println("STORED");
-                    if(message instanceof GetchunkMessage) System.out.println("GETCHUNK");
-                    if(message instanceof ChunkMessage   ) System.out.println("CHUNK");
-                    message.process(peer);
-                } catch (IOException | NoSuchMethodException e) {
+                    if(message.getSenderId() != peer.getId())
+                        handle(message);
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+        }
+    }
+
+    public class ControlSocketHandler extends SocketHandler {
+        public ControlSocketHandler(Peer peer, DatagramSocket socket) {
+            super(peer, socket);
+        }
+
+        @Override
+        protected void handle(Message message) {
+            if (message instanceof StoredMessage || message instanceof GetchunkMessage) {
+                if (message instanceof StoredMessage  ) System.out.println("STORED"  );
+                if (message instanceof GetchunkMessage) System.out.println("GETCHUNK");
+
+                message.process(getPeer());
+            }
+        }
+    }
+
+    public class DataBroadcastSocketHandler extends SocketHandler {
+        public DataBroadcastSocketHandler(Peer peer, DatagramSocket socket) {
+            super(peer, socket);
+        }
+
+        @Override
+        protected void handle(Message message) {
+            if (message instanceof PutchunkMessage) {
+                if (message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
+
+                message.process(getPeer());
+            }
+        }
+    }
+
+    public class DataRecoverySocketHandler extends SocketHandler {
+        public DataRecoverySocketHandler(Peer peer, DatagramSocket socket) {
+            super(peer, socket);
+        }
+
+        @Override
+        protected void handle(Message message) {
+            if (message instanceof ChunkMessage){
+                if (message instanceof ChunkMessage) System.out.println("CHUNK");
+
+                message.process(getPeer());
             }
         }
     }

@@ -17,8 +17,8 @@ public class MessageFactory {
         String messageType = headerSplit[1];
         int senderId = Integer.parseInt(headerSplit[2]);
         String fileId = headerSplit[3];
-        int chunkNo = (headerSplit.length >= 5 ? Integer.parseInt(headerSplit[4]) : null);
-        int replicationDeg = (headerSplit.length >= 6 ? Integer.parseInt(headerSplit[5]) : null);
+        Integer chunkNo = (headerSplit.length >= 5 ? Integer.parseInt(headerSplit[4]) : null);
+        Integer replicationDeg = (headerSplit.length >= 6 ? Integer.parseInt(headerSplit[5]) : null);
 
         // Messages without body
         Message ret = switch (messageType) {
