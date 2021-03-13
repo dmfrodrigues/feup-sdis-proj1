@@ -40,7 +40,7 @@ abstract public class Message {
         return new DatagramPacket(getBytes(), getLength(), inetSocketAddress);
     }
 
-    public abstract void process(Peer peer) throws NoSuchMethodException;
+    public abstract void process(Peer peer);
 
     public String getVersion(){
         return version;
