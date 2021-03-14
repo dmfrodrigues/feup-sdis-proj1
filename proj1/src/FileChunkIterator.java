@@ -76,7 +76,7 @@ public class FileChunkIterator implements Iterator<byte[]> {
      */
     public int length(){
         long l = file.length();
-        long ret = l/chunkSize + (l%chunkSize == 0 ? 1 : 0);
+        long ret = l/chunkSize + 1;
         return (int) ret;
     }
 
