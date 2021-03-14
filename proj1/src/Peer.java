@@ -151,6 +151,9 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be deleted over all peers
      */
     public void delete(String pathname) {
+        Runnable runnable = new DeleteRunnable(this, pathname);
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     /**
