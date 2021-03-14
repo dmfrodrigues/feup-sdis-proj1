@@ -30,7 +30,7 @@ public class PutchunkMessage extends Message {
     public void process(Peer peer) {
         String chunkId = getFileId() + "-" + getChunkNo();
         peer.getStorageManager().saveChunk(chunkId, body);
-        Message response = new StoredMessage(getVersion(), getSenderId(), getFileId(), getChunkNo(), peer.getControlAddress());
+        Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {
             peer.send(response);
         } catch (IOException e) {
