@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 
 public class FileChunkIterator implements Iterator<byte[]> {
+    private static final int MAX_LENGTH = 1000000;
+
     private final File file;
     private final int chunkSize;
     private final String fileId;
@@ -29,6 +31,8 @@ public class FileChunkIterator implements Iterator<byte[]> {
     public FileChunkIterator(File file, int chunkSize) throws IOException {
         this.file = file;
         this.chunkSize = chunkSize;
+
+        if(length() > MAX_LENGTH) throw new FileTooLargeException(file);
 
         fileId = createFileId();
         buffer = new byte[this.chunkSize];
