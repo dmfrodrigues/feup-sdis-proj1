@@ -1,21 +1,21 @@
 import java.io.File;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.rmi.AlreadyBoundException;
-import java.rmi.Remote;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-public class Peer implements Remote {
-    private static final int LOCAL_SOCKET_PORT = 4040;
-    private static final int BUFFER_LENGTH = 80000;
+public class Peer implements PeerInterface {
+    /**
+     * Initially reserved storage for backing up chunks (in bytes).
+     */
+    private static final int INITIAL_STORAGE_SIZE = 1000000000;
 
-    private final DatagramSocket localSocket;
+    private final DatagramSocket sendSocket;
 
     private final String version;
     private final int id;
@@ -24,15 +24,20 @@ public class Peer implements Remote {
     private final InetSocketAddress dataBroadcastAddress;
     private final InetSocketAddress dataRecoveryAddress;
 
+    private final MulticastSocket controlSocket;
+    private final MulticastSocket dataBroadcastSocket;
+    private final MulticastSocket dataRecoverySocket;
+
+    private final ChunkStorageManager storageManager;
+
     public Peer(
             String version,
             int id,
             InetSocketAddress controlAddress,
             InetSocketAddress dataBroadcastAddress,
             InetSocketAddress dataRecoveryAddress
-    ) throws SocketException {
-        localSocket = new DatagramSocket(LOCAL_SOCKET_PORT);
-
+    ) throws IOException {
+        // Store arguments
         this.version = version;
         this.id = id;
 
@@ -40,14 +45,57 @@ public class Peer implements Remote {
         this.dataBroadcastAddress = dataBroadcastAddress;
         this.dataRecoveryAddress = dataRecoveryAddress;
 
-        PacketHandler packetHandler = new PacketHandler(this, localSocket);
-        Thread packetHandlerThread = new Thread(packetHandler);
-        packetHandlerThread.start();
+        // Initializations that do not require arguments
+        sendSocket = new DatagramSocket();
+
+        // Initialize storage space
+        String storagePath = id + "/storage/chunks";
+        storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
+
+        // Create sockets
+        controlSocket       = new MulticastSocket(this.controlAddress      .getPort());
+        dataBroadcastSocket = new MulticastSocket(this.dataBroadcastAddress.getPort());
+        dataRecoverySocket  = new MulticastSocket(this.dataRecoveryAddress .getPort());
+        // Have sockets join corresponding groups
+        controlSocket      .joinGroup(this.controlAddress      .getAddress());
+        dataBroadcastSocket.joinGroup(this.dataBroadcastAddress.getAddress());
+        dataRecoverySocket .joinGroup(this.dataRecoveryAddress .getAddress());
+
+        // Create socket handlers
+        Thread controlSocketHandlerThread       = new Thread(new ControlSocketHandler      (this, controlSocket      ));
+        Thread dataBroadcastSocketHandlerThread = new Thread(new DataBroadcastSocketHandler(this, dataBroadcastSocket));
+        Thread dataRecoverySocketHandlerThread  = new Thread(new DataRecoverySocketHandler (this, dataRecoverySocket ));
+        controlSocketHandlerThread      .start();
+        dataBroadcastSocketHandlerThread.start();
+        dataRecoverySocketHandlerThread .start();
     }
 
-    public void bindAsRemoteObject(String remote_obj_name) throws RemoteException, AlreadyBoundException {
+    public class CleanupRemoteObjectRunnable implements Runnable {
+        private String remoteObjName;
+
+        public CleanupRemoteObjectRunnable(String remoteObjName) {
+            this.remoteObjName = remoteObjName;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Registry registry = LocateRegistry.getRegistry();
+                registry.unbind(remoteObjName);
+            } catch (RemoteException | NotBoundException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    public void bindAsRemoteObject(String remoteObjName) throws RemoteException, AlreadyBoundException {
+        PeerInterface stub = (PeerInterface) UnicastRemoteObject.exportObject(this, 0);
+
         Registry registry = LocateRegistry.getRegistry();
-        registry.bind(remote_obj_name, this);
+        registry.bind(remoteObjName, stub);
+
+        CleanupRemoteObjectRunnable rmiCleanupRunnable = new CleanupRemoteObjectRunnable(remoteObjName);
+        Thread rmiCleanupThread = new Thread(rmiCleanupRunnable);
+        Runtime.getRuntime().addShutdownHook(rmiCleanupThread);
     }
 
     public String getVersion() {
@@ -58,8 +106,20 @@ public class Peer implements Remote {
         return id;
     }
 
+    public InetSocketAddress getControlAddress() {
+        return controlAddress;
+    }
+
     public InetSocketAddress getDataBroadcastAddress() {
         return dataBroadcastAddress;
+    }
+
+    public InetSocketAddress getDataRecoveryAddress(){
+        return dataRecoveryAddress;
+    }
+
+    public ChunkStorageManager getStorageManager() {
+        return storageManager;
     }
 
     /**
@@ -69,9 +129,8 @@ public class Peer implements Remote {
      * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
      */
     public void backup(String pathname, int replicationDegree) throws IOException {
-        ChunkedFile chunkedFile = new ChunkedFile(new File(pathname));
-        chunkedFile.readChunks();
-        Runnable runnable = new BackupRunnable(this, chunkedFile, replicationDegree);
+        FileChunkIterator fileChunkIterator = new FileChunkIterator(new File(pathname));
+        Runnable runnable = new BackupRunnable(this, fileChunkIterator, replicationDegree);
         Thread thread = new Thread(runnable);
         thread.start();
     }
@@ -83,8 +142,7 @@ public class Peer implements Remote {
      *
      * @param pathname  Pathname of file to be restored
      */
-    public void restore(String pathname){
-        throw new NoSuchMethodException("restore; yet to come");
+    public void restore(String pathname) {
     }
 
     /**
@@ -92,8 +150,7 @@ public class Peer implements Remote {
      *
      * @param pathname  Pathname of file to be deleted over all peers
      */
-    public void delete(String pathname){
-        throw new NoSuchMethodException("delete; yet to come");
+    public void delete(String pathname) {
     }
 
     /**
@@ -101,20 +158,18 @@ public class Peer implements Remote {
      *
      * @param space_kbytes  Amount of space, in kilobytes (KB, K=1000)
      */
-    public void reclaim(int space_kbytes){
-        throw new NoSuchMethodException("reclaim; yet to come");
+    public void reclaim(int space_kbytes) {
     }
 
     /**
      * Get state information on the peer.
      */
-    public void state(){
-        throw new NoSuchMethodException("state; yet to come");
+    public void state() {
     }
 
     public void send(Message message) throws IOException {
         DatagramPacket packet = message.getPacket();
-        localSocket.send(packet);
+        sendSocket.send(packet);
     }
 
     Map<Pair<String, Integer>, Set<Integer>> storedMessageMap =
@@ -127,35 +182,96 @@ public class Peer implements Remote {
     }
     public int popStoredMessages(PutchunkMessage putchunkMessage){
         Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
-        int ret = storedMessageMap.get(key).size();
-        storedMessageMap.get(key).clear();
+        Set<Integer> storedMessages = storedMessageMap.get(key);
+        int ret = (storedMessages != null ? storedMessages.size() : 0);
+        if(storedMessages != null) storedMessages.clear();
         return ret;
     }
 
-    public class PacketHandler implements Runnable {
+    public abstract class SocketHandler implements Runnable {
+        private static final int BUFFER_LENGTH = 80000;
+
         private final Peer peer;
         private final DatagramSocket socket;
+
         private final MessageFactory messageFactory;
 
-        public PacketHandler(Peer peer, DatagramSocket socket){
+        public SocketHandler(Peer peer, DatagramSocket socket) {
             this.peer = peer;
             this.socket = socket;
 
             messageFactory = new MessageFactory();
         }
 
+        public DatagramSocket getSocket() {
+            return socket;
+        }
+
+        public Peer getPeer() {
+            return peer;
+        }
+
+        abstract protected void handle(Message message);
+
         @Override
         public void run() {
             byte[] buf = new byte[BUFFER_LENGTH];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
-            while(true){
+            while (true) {
                 try {
                     socket.receive(packet);
                     Message message = messageFactory.factoryMethod(packet);
-                    message.process(peer);
+                    if(message.getSenderId() != peer.getId())
+                        handle(message);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+        }
+    }
+
+    public class ControlSocketHandler extends SocketHandler {
+        public ControlSocketHandler(Peer peer, DatagramSocket socket) {
+            super(peer, socket);
+        }
+
+        @Override
+        protected void handle(Message message) {
+            if (message instanceof StoredMessage || message instanceof GetchunkMessage) {
+                if (message instanceof StoredMessage  ) System.out.println("STORED"  );
+                if (message instanceof GetchunkMessage) System.out.println("GETCHUNK");
+
+                message.process(getPeer());
+            }
+        }
+    }
+
+    public class DataBroadcastSocketHandler extends SocketHandler {
+        public DataBroadcastSocketHandler(Peer peer, DatagramSocket socket) {
+            super(peer, socket);
+        }
+
+        @Override
+        protected void handle(Message message) {
+            if (message instanceof PutchunkMessage) {
+                if (message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
+
+                message.process(getPeer());
+            }
+        }
+    }
+
+    public class DataRecoverySocketHandler extends SocketHandler {
+        public DataRecoverySocketHandler(Peer peer, DatagramSocket socket) {
+            super(peer, socket);
+        }
+
+        @Override
+        protected void handle(Message message) {
+            if (message instanceof ChunkMessage){
+                if (message instanceof ChunkMessage) System.out.println("CHUNK");
+
+                message.process(getPeer());
             }
         }
     }
