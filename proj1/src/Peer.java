@@ -30,6 +30,9 @@ public class Peer implements PeerInterface {
 
     private final ChunkStorageManager storageManager;
     private final FileTable fileTable;
+    private final ControlSocketHandler controlSocketHandler;
+    private final DataBroadcastSocketHandler dataBroadcastSocketHandler;
+    private final DataRecoverySocketHandler dataRecoverySocketHandler;
 
     public Peer(
             String version,
@@ -67,9 +70,13 @@ public class Peer implements PeerInterface {
         dataRecoverySocket .joinGroup(this.dataRecoveryAddress .getAddress());
 
         // Create socket handlers
-        Thread controlSocketHandlerThread       = new Thread(new ControlSocketHandler      (this, controlSocket      ));
-        Thread dataBroadcastSocketHandlerThread = new Thread(new DataBroadcastSocketHandler(this, dataBroadcastSocket));
-        Thread dataRecoverySocketHandlerThread  = new Thread(new DataRecoverySocketHandler (this, dataRecoverySocket ));
+        controlSocketHandler       = new ControlSocketHandler      (this, controlSocket      );
+        dataBroadcastSocketHandler = new DataBroadcastSocketHandler(this, dataBroadcastSocket);
+        dataRecoverySocketHandler  = new DataRecoverySocketHandler (this, dataRecoverySocket );
+
+        Thread controlSocketHandlerThread       = new Thread(controlSocketHandler);
+        Thread dataBroadcastSocketHandlerThread = new Thread(dataBroadcastSocketHandler);
+        Thread dataRecoverySocketHandlerThread  = new Thread(dataRecoverySocketHandler);
         controlSocketHandlerThread      .start();
         dataBroadcastSocketHandlerThread.start();
         dataRecoverySocketHandlerThread .start();
@@ -129,6 +136,18 @@ public class Peer implements PeerInterface {
 
     public FileTable getFileTable(){
         return fileTable;
+    }
+    
+    public ControlSocketHandler getControlSocketHandler(){
+        return controlSocketHandler;
+    }
+
+    public DataBroadcastSocketHandler getDataBroadcastSocketHandler(){
+        return dataBroadcastSocketHandler;
+    }
+
+    public DataRecoverySocketHandler getDataRecoverySocketHandler(){
+        return dataRecoverySocketHandler;
     }
 
     /**
