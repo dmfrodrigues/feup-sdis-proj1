@@ -34,12 +34,4 @@ public class ChunkMessage extends Message {
     public String getChunkID() {
         return getFileId() + "-" + getChunkNo();
     }
-
-    public int getChunkNo() {
-        return chunkNo;
-    }
-
-    public String getChunkID() {
-        return getFileId() + "-" + getChunkNo();
-    }
 }
