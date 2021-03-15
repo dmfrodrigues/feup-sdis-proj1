@@ -8,6 +8,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Peer implements PeerInterface {
     /**
@@ -29,6 +32,7 @@ public class Peer implements PeerInterface {
     private final MulticastSocket dataRecoverySocket;
 
     private final ChunkStorageManager storageManager;
+    private final FileTable fileTable;
     private final ControlSocketHandler controlSocketHandler;
     private final DataBroadcastSocketHandler dataBroadcastSocketHandler;
     private final DataRecoverySocketHandler dataRecoverySocketHandler;
@@ -54,6 +58,10 @@ public class Peer implements PeerInterface {
         // Initialize storage space
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
+
+        // Load file table
+        fileTable = new FileTable();
+        fileTable.load();
 
         // Create sockets
         controlSocket       = new MulticastSocket(this.controlAddress      .getPort());
@@ -129,6 +137,10 @@ public class Peer implements PeerInterface {
         return storageManager;
     }
 
+    public FileTable getFileTable(){
+        return fileTable;
+    }
+    
     public ControlSocketHandler getControlSocketHandler(){
         return controlSocketHandler;
     }
@@ -281,6 +293,10 @@ public class Peer implements PeerInterface {
     }
 
     public class DataRecoverySocketHandler extends SocketHandler {
+        private ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        Map<String, byte[]> map = new HashMap<>();
+
         public DataRecoverySocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
         }
@@ -292,6 +308,22 @@ public class Peer implements PeerInterface {
 
                 message.process(getPeer());
             }
+        }
+
+        public void register(String id, byte[] data){
+            map.put(id, data);
+        }
+
+        public Future<byte[]> request(GetchunkMessage message) throws IOException {
+            getPeer().send(message);
+            String id = message.getChunkID();
+            return executor.submit(() -> {
+                byte[] ret;
+                do {
+                    ret = map.get(id);
+                } while(ret == null);
+                return ret;
+            });
         }
     }
 }
