@@ -28,7 +28,7 @@ public class PutchunkMessage extends Message {
 
     @Override
     public void process(Peer peer) {
-        String chunkId = getFileId() + "-" + getChunkNo();
+        String chunkId = getChunkID();
         peer.getStorageManager().saveChunk(chunkId, body);
         Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {
@@ -40,5 +40,9 @@ public class PutchunkMessage extends Message {
 
     public int getChunkNo() {
         return chunkNo;
+    }
+
+    private String getChunkID() {
+        return getFileId() + "-" + getChunkNo();
     }
 }

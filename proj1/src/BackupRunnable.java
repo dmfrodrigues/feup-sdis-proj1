@@ -8,9 +8,9 @@ public class BackupRunnable implements Runnable {
      */
     private static final int WAIT_MILLIS = 1000;
 
-    private Peer peer;
-    private FileChunkIterator fileChunkIterator;
-    private int replicationDegree;
+    private final Peer peer;
+    private final FileChunkIterator fileChunkIterator;
+    private final int replicationDegree;
 
     public BackupRunnable(Peer peer, FileChunkIterator fileChunkIterator, int replicationDegree){
         this.peer = peer;
@@ -26,7 +26,7 @@ public class BackupRunnable implements Runnable {
             byte[] chunk = fileChunkIterator.next();
             PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
-            int numStored = 0;
+            int numStored;
             do {
                 try {
                     peer.send(message);
@@ -36,7 +36,7 @@ public class BackupRunnable implements Runnable {
                 }
                 try {
                     sleep(WAIT_MILLIS);
-                } catch (InterruptedException e) {}
+                } catch (InterruptedException ignored) {}
                 numStored = peer.popStoredMessages(message);
                 System.out.println("    Got " + numStored + " stored messages");
             } while(numStored < replicationDegree);
