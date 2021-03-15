@@ -26,4 +26,12 @@ public class ChunkMessage extends Message {
     @Override
     public void process(Peer peer) {
     }
+
+    public int getChunkNo() {
+        return chunkNo;
+    }
+
+    public String getChunkID() {
+        return getFileId() + "-" + getChunkNo();
+    }
 }
