@@ -273,7 +273,7 @@ public class Peer implements PeerInterface {
         @Override
         protected void handle(Message message) {
             if (message instanceof PutchunkMessage) {
-                if (message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
+                System.out.println("PUTCHUNK");
 
                 message.process(getPeer());
             }
@@ -288,7 +288,7 @@ public class Peer implements PeerInterface {
         @Override
         protected void handle(Message message) {
             if (message instanceof ChunkMessage){
-                if (message instanceof ChunkMessage) System.out.println("CHUNK");
+                System.out.println("CHUNK");
 
                 message.process(getPeer());
             }
