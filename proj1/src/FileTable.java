@@ -7,7 +7,7 @@ import java.util.Properties;
 
 public class FileTable {
 
-    private final Map<String, String> table = new HashMap<String, String>();
+    private final Map<String, Pair<String, Integer>> table = new HashMap<>();
     private static final String table_path = "fileID.properties";
 
     /**
@@ -16,10 +16,10 @@ public class FileTable {
      * @param filename Filename
      * @param fileID File ID
      */
-    public void insert(String filename, String fileID) {
-        table.put(filename, fileID);
+    public void insert(String filename, String fileID, Integer numberChunks) {
+        table.put(filename, new Pair<>(fileID, numberChunks));
         Properties properties = new Properties();
-        for (Map.Entry<String,String> entry : table.entrySet()) {
+        for (Map.Entry<String,Pair<String,Integer>> entry : table.entrySet()) {
             properties.put(entry.getKey(), entry.getValue());
         }
         try {
@@ -35,8 +35,11 @@ public class FileTable {
      * @param filename Name of file
      * @return String with file iD
      */
-    public String getFileID(String filename) {
-        return table.get(filename);
+    public String  getFileID      (String filename) {
+        return table.get(filename).first;
+    }
+    public Integer getNumberChunks(String filename) {
+        return table.get(filename).second;
     }
 
     /**
@@ -48,7 +51,7 @@ public class FileTable {
             properties.load(new FileInputStream(table_path));
         } catch (IOException ignored) {}
         for (String key : properties.stringPropertyNames()) {
-            table.put(key, properties.get(key).toString());
+            table.put(key, (Pair<String, Integer>) properties.get(key));
         }
     }
 }
