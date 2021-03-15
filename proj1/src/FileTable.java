@@ -1,14 +1,11 @@
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 public class FileTable {
 
-    private final Map<String, Pair<String, Integer>> table = new HashMap<>();
-    private static final String table_path = "fileID.properties";
+    private static Map<String, Pair<String, Integer>> table = new HashMap<>();
+    private static final String table_path = "fileID.ser";
 
     /**
      * @brief Inserts an entry in the file ID table and saves it in the local table file.
@@ -18,12 +15,13 @@ public class FileTable {
      */
     public void insert(String filename, String fileID, Integer numberChunks) {
         table.put(filename, new Pair<>(fileID, numberChunks));
-        Properties properties = new Properties();
-        for (Map.Entry<String,Pair<String,Integer>> entry : table.entrySet()) {
-            properties.put(entry.getKey(), entry.getValue());
-        }
         try {
-            properties.store(new FileOutputStream(table_path), null);
+            FileOutputStream o =
+                    new FileOutputStream(table_path);
+            ObjectOutputStream os = new ObjectOutputStream(o);
+            os.writeObject(table);
+            os.close();
+            o.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -46,12 +44,12 @@ public class FileTable {
      * @brief Loads file ID table.
      */
     public void load() {
-        Properties properties = new Properties();
         try {
-            properties.load(new FileInputStream(table_path));
-        } catch (IOException ignored) {}
-        for (String key : properties.stringPropertyNames()) {
-            table.put(key, (Pair<String, Integer>) properties.get(key));
-        }
+            FileInputStream i = new FileInputStream(table_path);
+            ObjectInputStream is = new ObjectInputStream(i);
+            table = (HashMap) is.readObject();
+            i.close();
+            is.close();
+        } catch (IOException | ClassNotFoundException ignored) {}
     }
 }
