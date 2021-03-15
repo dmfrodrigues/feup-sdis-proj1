@@ -8,6 +8,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Peer implements PeerInterface {
     /**
@@ -282,7 +285,7 @@ public class Peer implements PeerInterface {
         @Override
         protected void handle(Message message) {
             if (message instanceof PutchunkMessage) {
-                if (message instanceof PutchunkMessage) System.out.println("PUTCHUNK");
+                System.out.println("PUTCHUNK");
 
                 message.process(getPeer());
             }
@@ -290,6 +293,10 @@ public class Peer implements PeerInterface {
     }
 
     public class DataRecoverySocketHandler extends SocketHandler {
+        private ExecutorService executor = Executors.newSingleThreadExecutor();
+
+        Map<String, byte[]> map = new HashMap<>();
+
         public DataRecoverySocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
         }
@@ -297,10 +304,26 @@ public class Peer implements PeerInterface {
         @Override
         protected void handle(Message message) {
             if (message instanceof ChunkMessage){
-                if (message instanceof ChunkMessage) System.out.println("CHUNK");
+                System.out.println("CHUNK");
 
                 message.process(getPeer());
             }
+        }
+
+        public void register(String id, byte[] data){
+            map.put(id, data);
+        }
+
+        public Future<byte[]> request(GetchunkMessage message) throws IOException {
+            getPeer().send(message);
+            String id = message.getChunkID();
+            return executor.submit(() -> {
+                byte[] ret;
+                do {
+                    ret = map.get(id);
+                } while(ret == null);
+                return ret;
+            });
         }
     }
 }
