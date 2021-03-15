@@ -29,6 +29,7 @@ public class Peer implements PeerInterface {
     private final MulticastSocket dataRecoverySocket;
 
     private final ChunkStorageManager storageManager;
+    private final FileTable fileTable;
 
     public Peer(
             String version,
@@ -51,6 +52,10 @@ public class Peer implements PeerInterface {
         // Initialize storage space
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
+
+        // Load file table
+        fileTable = new FileTable();
+        fileTable.load();
 
         // Create sockets
         controlSocket       = new MulticastSocket(this.controlAddress      .getPort());
@@ -120,6 +125,10 @@ public class Peer implements PeerInterface {
 
     public ChunkStorageManager getStorageManager() {
         return storageManager;
+    }
+
+    public FileTable getFileTable(){
+        return fileTable;
     }
 
     /**
