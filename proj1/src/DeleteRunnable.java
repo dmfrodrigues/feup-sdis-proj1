@@ -2,8 +2,8 @@ import java.io.IOException;
 
 public class DeleteRunnable implements Runnable{
 
-    private Peer peer;
-    private String pathname;
+    private final Peer peer;
+    private final String pathname;
 
     public DeleteRunnable(Peer peer, String pathname){
         this.peer = peer;
@@ -12,7 +12,11 @@ public class DeleteRunnable implements Runnable{
 
     @Override
     public void run() {
-        DeleteMessage message = new DeleteMessage(peer.getVersion(), peer.getId(), "1", peer.getDataBroadcastAddress());
+        DeleteMessage message = new DeleteMessage(peer.getVersion(), peer.getId(),
+                peer.getFileTable().getFileID(pathname), peer.getControlAddress());
+
+        peer.getStorageManager().deleteFile(peer.getFileTable().getFileID(pathname));
+
         try {
             peer.send(message);
         } catch (IOException e) {
