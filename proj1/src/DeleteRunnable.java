@@ -12,6 +12,12 @@ public class DeleteRunnable implements Runnable{
 
     @Override
     public void run() {
+
+        if(!peer.getFileTable().hasFile(pathname)){
+            System.out.println("File does not exist in peer table");
+            return;
+        }
+
         DeleteMessage message = new DeleteMessage(peer.getVersion(), peer.getId(),
                 peer.getFileTable().getFileID(pathname), peer.getControlAddress());
 

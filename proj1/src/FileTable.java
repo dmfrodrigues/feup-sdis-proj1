@@ -39,6 +39,9 @@ public class FileTable {
     public Integer getNumberChunks(String filename) {
         return table.get(filename).second;
     }
+    public boolean hasFile(String filename){
+        return table.containsKey(filename);
+    }
 
     /**
      * @brief Loads file ID table.
