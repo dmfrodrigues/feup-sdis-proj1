@@ -19,8 +19,8 @@ public class FileChunkIterator implements Iterator<byte[]> {
      *
      * @param file      File to parse
      */
-    public FileChunkIterator(File file) throws IOException {
-        this(file, 64000);
+    public FileChunkIterator(Peer peer, File file) throws IOException {
+        this(peer, file, 64000);
     }
     /**
      * @brief Construct ChunkedFile.
@@ -28,7 +28,7 @@ public class FileChunkIterator implements Iterator<byte[]> {
      * @param file      File to parse
      * @param chunkSize Chunk size, in bytes; defaults to 64kB = 64000B
      */
-    public FileChunkIterator(File file, int chunkSize) throws IOException {
+    public FileChunkIterator(Peer peer, File file, int chunkSize) throws IOException {
         this.file = file;
         this.chunkSize = chunkSize;
 
@@ -37,6 +37,8 @@ public class FileChunkIterator implements Iterator<byte[]> {
         fileId = createFileId();
         buffer = new byte[this.chunkSize];
         fileStream = new FileInputStream(this.file);
+
+        peer.getFileTable().insert(file.getName(), fileId, length());
     }
 
     private String createFileId() throws IOException {

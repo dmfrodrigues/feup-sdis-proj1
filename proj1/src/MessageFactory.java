@@ -24,6 +24,7 @@ public class MessageFactory {
         Message ret = switch (messageType) {
             case "STORED" -> new StoredMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             case "GETCHUNK" -> new GetchunkMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
+            case "DELETE" -> new DeleteMessage(version, senderId, fileId, inetSocketAddress);
             default -> null;
         };
         if(ret != null) return ret;

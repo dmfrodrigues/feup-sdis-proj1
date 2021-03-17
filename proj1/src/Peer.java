@@ -28,6 +28,7 @@ public class Peer implements PeerInterface {
     private final MulticastSocket dataBroadcastSocket;
     private final MulticastSocket dataRecoverySocket;
 
+    private final FileTable fileTable;
     private final ChunkStorageManager storageManager;
     private final ControlSocketHandler controlSocketHandler;
     private final DataBroadcastSocketHandler dataBroadcastSocketHandler;
@@ -54,6 +55,9 @@ public class Peer implements PeerInterface {
         // Initialize storage space
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
+
+        fileTable = new FileTable();
+        fileTable.load();
 
         // Create sockets
         controlSocket       = new MulticastSocket(this.controlAddress      .getPort());
@@ -129,6 +133,10 @@ public class Peer implements PeerInterface {
         return storageManager;
     }
 
+    public FileTable getFileTable() {
+        return fileTable;
+    }
+
     public ControlSocketHandler getControlSocketHandler(){
         return controlSocketHandler;
     }
@@ -148,7 +156,7 @@ public class Peer implements PeerInterface {
      * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
      */
     public void backup(String pathname, int replicationDegree) throws IOException {
-        FileChunkIterator fileChunkIterator = new FileChunkIterator(new File(pathname));
+        FileChunkIterator fileChunkIterator = new FileChunkIterator(this, new File(pathname));
         Runnable runnable = new BackupRunnable(this, fileChunkIterator, replicationDegree);
         Thread thread = new Thread(runnable);
         thread.start();
@@ -170,6 +178,9 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be deleted over all peers
      */
     public void delete(String pathname) {
+        Runnable runnable = new DeleteRunnable(this, pathname);
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     /**
@@ -256,10 +267,10 @@ public class Peer implements PeerInterface {
 
         @Override
         protected void handle(Message message) {
-            if (message instanceof StoredMessage || message instanceof GetchunkMessage) {
+            if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof DeleteMessage) {
                 if (message instanceof StoredMessage  ) System.out.println("STORED"  );
                 if (message instanceof GetchunkMessage) System.out.println("GETCHUNK");
-
+                if (message instanceof DeleteMessage) System.out.println("DELETE");
                 message.process(getPeer());
             }
         }
