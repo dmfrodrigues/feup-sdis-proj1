@@ -1,6 +1,7 @@
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class FileTable {
 
@@ -41,6 +42,10 @@ public class FileTable {
     }
     public boolean hasFile(String filename){
         return table.containsKey(filename);
+    }
+
+    public Set<String> getFilenames(){
+        return table.keySet();
     }
 
     /**

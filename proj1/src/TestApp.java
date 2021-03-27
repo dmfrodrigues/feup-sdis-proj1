@@ -31,11 +31,13 @@ public class TestApp {
                     stub.reclaim(max_size);
                     break;
                 case "STATE":
-                    stub.state();
+                    String response = stub.state();
+                    System.out.println(response);
                     break;
                 default:
                     break;
             }
+
         } catch (Exception e){
             System.out.println(e.toString());
         }

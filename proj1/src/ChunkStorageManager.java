@@ -29,12 +29,20 @@ public class ChunkStorageManager {
         }
     }
 
+    public int getCapacity() {
+        return max_size;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
     /**
      * @brief Get occupied space in bytes.
      *
      * @return int representing the number of bytes stored.
      **/
-    private int getMemoryUsed(){
+    public int getMemoryUsed(){
         File storage= new File(path);
         int size = 0;
         for (File file : Objects.requireNonNull(storage.listFiles()))

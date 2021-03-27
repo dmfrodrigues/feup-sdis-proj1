@@ -194,7 +194,16 @@ public class Peer implements PeerInterface {
     /**
      * Get state information on the peer.
      */
-    public void state() {
+    public String state() {
+        StateRunnable runnable = new StateRunnable(this, storageManager);
+        Thread thread = new Thread(runnable);
+        thread.start();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return runnable.getStatus();
     }
 
     public void send(Message message) throws IOException {
