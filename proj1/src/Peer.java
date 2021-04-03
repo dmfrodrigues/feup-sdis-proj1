@@ -189,6 +189,9 @@ public class Peer implements PeerInterface {
      * @param space_kbytes  Amount of space, in kilobytes (KB, K=1000)
      */
     public void reclaim(int space_kbytes) {
+        Runnable runnable = new ReclaimRunnable(this, space_kbytes);
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     /**
