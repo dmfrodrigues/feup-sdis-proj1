@@ -1,4 +1,6 @@
 import java.io.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -7,7 +9,7 @@ import java.util.Objects;
  * There should be at most one instance of this class.
  */
 public class ChunkStorageManager {
-    private final int max_size;
+    private int max_size;
     private final String path;
 
     public ChunkStorageManager(String path, int max_size){
@@ -29,6 +31,11 @@ public class ChunkStorageManager {
         }
     }
 
+    public List<File> getChunks(){
+        File storage = new File(path);
+        return Arrays.asList(Objects.requireNonNull(storage.listFiles()));
+    }
+
     public int getCapacity() {
         return max_size;
     }
@@ -37,13 +44,17 @@ public class ChunkStorageManager {
         return path;
     }
 
+    public void setMaxSize(int max_size){
+        this.max_size = max_size;
+    }
+
     /**
      * @brief Get occupied space in bytes.
      *
      * @return int representing the number of bytes stored.
      **/
     public int getMemoryUsed(){
-        File storage= new File(path);
+        File storage = new File(path);
         int size = 0;
         for (File file : Objects.requireNonNull(storage.listFiles()))
                 size += file.length();

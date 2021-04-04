@@ -30,6 +30,10 @@ public class PutchunkMessage extends Message {
     public void process(Peer peer) {
         String chunkId = getChunkID();
         peer.getStorageManager().saveChunk(chunkId, body);
+
+        peer.getFileTable().setDesiredRepDegree(chunkId, replicationDeg);
+        peer.pushPutChunkFileIDs(getFileId());
+
         Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {
             peer.send(response);

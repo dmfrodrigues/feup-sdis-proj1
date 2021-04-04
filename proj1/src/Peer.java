@@ -230,6 +230,13 @@ public class Peer implements PeerInterface {
         return ret;
     }
 
+    boolean inRemovedProcess = false;
+    List<String> putChunkFileIDs = new ArrayList<String>();
+    public void pushPutChunkFileIDs(String fileID) {
+        if(inRemovedProcess)
+            putChunkFileIDs.add(fileID);
+    }
+
     public abstract class SocketHandler implements Runnable {
         private static final int BUFFER_LENGTH = 80000;
 
@@ -282,6 +289,7 @@ public class Peer implements PeerInterface {
             if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof DeleteMessage) {
                 if (message instanceof StoredMessage  ) System.out.println("STORED"  );
                 if (message instanceof GetchunkMessage) System.out.println("GETCHUNK");
+                if (message instanceof DeleteMessage) System.out.println("REMOVED");
                 if (message instanceof DeleteMessage) System.out.println("DELETE");
                 message.process(getPeer());
             }

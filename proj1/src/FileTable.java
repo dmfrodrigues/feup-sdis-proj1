@@ -8,6 +8,9 @@ public class FileTable {
     private static Map<String, Pair<String, Integer>> table = new HashMap<>();
     private static final String table_path = "fileID.ser";
 
+    private static Map<String, Integer> actualRepDegree = new HashMap<>();
+    private static Map<String, Integer> desiredRepDegree = new HashMap<>();
+
     /**
      * @brief Inserts an entry in the file ID table and saves it in the local table file.
      *
@@ -26,6 +29,29 @@ public class FileTable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void incrementActualRepDegree(String chunkID){
+        int actual = actualRepDegree.getOrDefault(chunkID, 0);
+        actualRepDegree.put(chunkID, actual + 1);
+    }
+
+    public void decrementActualRepDegree(String chunkID){
+        int actual = actualRepDegree.getOrDefault(chunkID, 0);
+        if(actual != 0)
+            actualRepDegree.put(chunkID, actual - 1);
+    }
+
+    public void setDesiredRepDegree(String chunkID, int value){
+        desiredRepDegree.put(chunkID, value);
+    }
+
+    public int getActualRepDegree(String fileID){
+        return actualRepDegree.getOrDefault(fileID, 0);
+    }
+
+    public int getDesiredRepDegree(String fileID){
+        return desiredRepDegree.getOrDefault(fileID, 0);
     }
 
     /**
