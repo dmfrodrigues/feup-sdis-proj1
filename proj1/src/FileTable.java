@@ -3,10 +3,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class FileTable {
+public class FileTable implements Serializable {
 
     private static Map<String, Pair<String, Integer>> table = new HashMap<>();
-    private static final String table_path = "fileID.ser";
+    private static final String table_path = "../bin/fileID.ser";
 
     private static Map<String, Integer> actualRepDegree = new HashMap<>();
     private static Map<String, Integer> desiredRepDegree = new HashMap<>();
@@ -19,31 +19,25 @@ public class FileTable {
      */
     public void insert(String filename, String fileID, Integer numberChunks) {
         table.put(filename, new Pair<>(fileID, numberChunks));
-        try {
-            FileOutputStream o =
-                    new FileOutputStream(table_path);
-            ObjectOutputStream os = new ObjectOutputStream(o);
-            os.writeObject(table);
-            os.close();
-            o.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        save();
     }
 
     public void incrementActualRepDegree(String chunkID){
         int actual = actualRepDegree.getOrDefault(chunkID, 0);
         actualRepDegree.put(chunkID, actual + 1);
+        save();
     }
 
     public void decrementActualRepDegree(String chunkID){
         int actual = actualRepDegree.getOrDefault(chunkID, 0);
         if(actual != 0)
             actualRepDegree.put(chunkID, actual - 1);
+        save();
     }
 
     public void setDesiredRepDegree(String chunkID, int value){
         desiredRepDegree.put(chunkID, value);
+        save();
     }
 
     public int getActualRepDegree(String fileID){
@@ -74,6 +68,21 @@ public class FileTable {
         return table.keySet();
     }
 
+    public void save(){
+        try {
+            FileOutputStream o =
+                    new FileOutputStream(table_path);
+            ObjectOutputStream os = new ObjectOutputStream(o);
+            os.writeObject(table);
+            os.writeObject(actualRepDegree);
+            os.writeObject(desiredRepDegree);
+            os.close();
+            o.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * @brief Loads file ID table.
      */
@@ -81,7 +90,9 @@ public class FileTable {
         try {
             FileInputStream i = new FileInputStream(table_path);
             ObjectInputStream is = new ObjectInputStream(i);
-            table = (HashMap) is.readObject();
+            table = (Map<String, Pair<String, Integer>>) is.readObject();
+            actualRepDegree= (Map<String, Integer>) is.readObject();
+            desiredRepDegree= (Map<String, Integer>) is.readObject();
             i.close();
             is.close();
         } catch (IOException | ClassNotFoundException ignored) {}
