@@ -2,14 +2,20 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FileTable implements Serializable {
 
     private static Map<String, Pair<String, Integer>> table = new HashMap<>();
-    private static final String table_path = "../bin/fileID.ser";
+    private static String table_path;
 
-    private static Map<String, Integer> actualRepDegree = new HashMap<>();
-    private static Map<String, Integer> desiredRepDegree = new HashMap<>();
+    public static Map<String, Integer> actualRepDegree = new ConcurrentHashMap<>();
+    public static Map<String, Integer> chunkDesiredRepDegree = new ConcurrentHashMap<>();
+    public static Map<String, Integer> fileDesiredRepDegree = new ConcurrentHashMap<>();
+
+    public FileTable(String path) {
+        table_path = path + "/fileID.ser";
+    }
 
     /**
      * @brief Inserts an entry in the file ID table and saves it in the local table file.
@@ -35,17 +41,24 @@ public class FileTable implements Serializable {
         save();
     }
 
-    public void setDesiredRepDegree(String chunkID, int value){
-        desiredRepDegree.put(chunkID, value);
+    public void setFileDesiredRepDegree(String fileID, int value){
+        fileDesiredRepDegree.put(fileID, value);
+        save();
+    }
+
+    public void setChunkDesiredRepDegree(String chunkID, int value){
+        chunkDesiredRepDegree.put(chunkID, value);
         save();
     }
 
     public int getActualRepDegree(String fileID){
         return actualRepDegree.getOrDefault(fileID, 0);
     }
-
-    public int getDesiredRepDegree(String fileID){
-        return desiredRepDegree.getOrDefault(fileID, 0);
+    public int getChunkDesiredRepDegree(String fileID){
+        return chunkDesiredRepDegree.getOrDefault(fileID, 0);
+    }
+    public int getFileDesiredRepDegree(String fileID){
+        return fileDesiredRepDegree.getOrDefault(fileID, 0);
     }
 
     /**
@@ -75,7 +88,8 @@ public class FileTable implements Serializable {
             ObjectOutputStream os = new ObjectOutputStream(o);
             os.writeObject(table);
             os.writeObject(actualRepDegree);
-            os.writeObject(desiredRepDegree);
+            os.writeObject(chunkDesiredRepDegree);
+            os.writeObject(fileDesiredRepDegree);
             os.close();
             o.close();
         } catch (IOException e) {
@@ -92,7 +106,8 @@ public class FileTable implements Serializable {
             ObjectInputStream is = new ObjectInputStream(i);
             table = (Map<String, Pair<String, Integer>>) is.readObject();
             actualRepDegree= (Map<String, Integer>) is.readObject();
-            desiredRepDegree= (Map<String, Integer>) is.readObject();
+            chunkDesiredRepDegree= (Map<String, Integer>) is.readObject();
+            fileDesiredRepDegree= (Map<String, Integer>) is.readObject();
             i.close();
             is.close();
         } catch (IOException | ClassNotFoundException ignored) {}

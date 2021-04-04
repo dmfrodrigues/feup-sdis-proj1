@@ -20,7 +20,7 @@ public class StoredMessage extends Message {
     @Override
     public void process(Peer peer) {
         peer.pushStoredMessage(this);
-        peer.getFileTable().incrementActualRepDegree(getFileId());
+        peer.getFileTable().incrementActualRepDegree(getFileId() + "-" + chunkNo);
     }
 
     public int getChunkNo() {

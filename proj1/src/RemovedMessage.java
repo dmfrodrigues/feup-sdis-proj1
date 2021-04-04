@@ -30,11 +30,10 @@ public class RemovedMessage extends Message {
 
     @Override
     public void process(Peer peer) {
-        peer.getFileTable().decrementActualRepDegree(fileID);    // update local count
+        peer.getFileTable().decrementActualRepDegree(fileID + "-" + chunkNo);// update local count
 
-        if(peer.getFileTable().getActualRepDegree(fileID) < peer.getFileTable().getDesiredRepDegree(fileID)){
+        if(peer.getFileTable().getActualRepDegree(fileID + "-" + chunkNo) < peer.getFileTable().getChunkDesiredRepDegree(fileID + "-" + chunkNo)){
 
-            // TODO
             // sleep random 0-400
             Random rand = new Random();
             int wait_time = rand.nextInt(400);
@@ -73,24 +72,20 @@ public class RemovedMessage extends Message {
             }
 
             PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(),
-                    fileID, Integer.parseInt(fileID.split("-", 2)[1]),
-                    peer.getFileTable().getDesiredRepDegree(fileID), chunk, peer.getDataBroadcastAddress()
+                    fileID, chunkNo,
+                    peer.getFileTable().getChunkDesiredRepDegree(fileID), chunk, peer.getDataBroadcastAddress()
             );
-
-            int numStored;
             do {
                 try {
                     peer.send(message);
-                    System.out.println("    Sent chunk " + Integer.parseInt(fileID.split("-", 2)[1]));
+                    System.out.println("    Sent chunk " + chunkNo);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 try {
                     sleep(WAIT_MILLIS);
                 } catch (InterruptedException ignored) {}
-                numStored = peer.popStoredMessages(message);
-                System.out.println("    Got " + numStored + " stored messages");
-            } while(numStored < peer.getFileTable().getDesiredRepDegree(fileID));
+            } while(peer.getFileTable().getActualRepDegree(fileID + "-" + chunkNo)  < peer.getFileTable().getChunkDesiredRepDegree(fileID + "-" + chunkNo));
 
         }
     }
