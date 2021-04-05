@@ -10,13 +10,11 @@ import java.util.Random;
 
 public class RemovedMessage extends Message {
     private final int chunkNo;
-    private String fileID;
     private static final int WAIT_MILLIS = 1000;
 
     public RemovedMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
         super(version, "REMOVED", senderId, fileId, inetSocketAddress);
         this.chunkNo = chunkNo;
-        this.fileID = fileID;
     }
 
     public byte[] getBytes(){
@@ -30,9 +28,15 @@ public class RemovedMessage extends Message {
 
     @Override
     public void process(Peer peer) {
-        peer.getFileTable().decrementActualRepDegree(fileID + "-" + chunkNo);// update local count
 
-        if(peer.getFileTable().getActualRepDegree(fileID + "-" + chunkNo) < peer.getFileTable().getChunkDesiredRepDegree(fileID + "-" + chunkNo)){
+        System.out.println("Got Removed!");
+
+        peer.getFileTable().decrementActualRepDegree(getFileId() + "-" + chunkNo);// update local count
+
+        if(!peer.getStorageManager().hasChunk(getFileId() + "-" + chunkNo))
+            return;
+
+        if(peer.getFileTable().getActualRepDegree(getFileId() + "-" + chunkNo) < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)){
 
             // sleep random 0-400
             Random rand = new Random();
@@ -46,7 +50,7 @@ public class RemovedMessage extends Message {
 
             // if receive PutChunk of this chunkID -> abort
             for(String _fileID: peer.putChunkFileIDs)
-                if(_fileID.equals(fileID)) {
+                if(_fileID.equals(getFileId())) {
                     peer.putChunkFileIDs.clear();
                     return;
                 }
@@ -54,7 +58,7 @@ public class RemovedMessage extends Message {
 
             // Open chunk
 
-            File file = new File(peer.getStorageManager().getPath() + "/" + fileID);
+            File file = new File(peer.getStorageManager().getPath() + "/" + getFileId() + "-" + chunkNo);
 
             byte[] chunk = new byte[(int) file.length()];
             try {
@@ -72,21 +76,18 @@ public class RemovedMessage extends Message {
             }
 
             PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(),
-                    fileID, chunkNo,
-                    peer.getFileTable().getChunkDesiredRepDegree(fileID), chunk, peer.getDataBroadcastAddress()
+                    getFileId(), chunkNo,
+                    peer.getFileTable().getChunkDesiredRepDegree(getFileId()), chunk, peer.getDataBroadcastAddress()
             );
-            do {
-                try {
-                    peer.send(message);
-                    System.out.println("    Sent chunk " + chunkNo);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    sleep(WAIT_MILLIS);
-                } catch (InterruptedException ignored) {}
-            } while(peer.getFileTable().getActualRepDegree(fileID + "-" + chunkNo)  < peer.getFileTable().getChunkDesiredRepDegree(fileID + "-" + chunkNo));
-
+            try {
+                peer.send(message);
+                System.out.println("    Sent chunk " + chunkNo);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                sleep(WAIT_MILLIS);
+            } catch (InterruptedException ignored) {}
         }
     }
 }

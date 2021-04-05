@@ -25,6 +25,7 @@ public class MessageFactory {
             case "STORED" -> new StoredMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             case "GETCHUNK" -> new GetchunkMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             case "DELETE" -> new DeleteMessage(version, senderId, fileId, inetSocketAddress);
+            case "REMOVED" -> new RemovedMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             default -> null;
         };
         if(ret != null) return ret;

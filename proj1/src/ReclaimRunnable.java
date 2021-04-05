@@ -18,10 +18,7 @@ public class ReclaimRunnable implements Runnable {
     public void run() {
         if(peer.getStorageManager().getMemoryUsed() > space_kbytes*1000){
             List<File> chunks = peer.getStorageManager().getChunks();
-            Iterator<File> itr = chunks.iterator();
-            while(itr.hasNext()){
-                File file = itr.next();
-
+            for (File file : chunks) {
                 RemovedMessage message = new RemovedMessage(peer.getVersion(), peer.getId(),
                         file.getName().split("-", 2)[0],
                         Integer.parseInt(file.getName().split("-", 2)[1]), peer.getControlAddress());
@@ -29,11 +26,12 @@ public class ReclaimRunnable implements Runnable {
                 peer.getFileTable().decrementActualRepDegree(file.getName());
                 try {
                     peer.send(message);
+                    System.out.println("Sent removed");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
-                if(peer.getStorageManager().getMemoryUsed() <= space_kbytes*1000)
+                if (peer.getStorageManager().getMemoryUsed() <= space_kbytes * 1000)
                     break;
             }
         }

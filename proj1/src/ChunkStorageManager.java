@@ -36,6 +36,14 @@ public class ChunkStorageManager {
         return Arrays.asList(Objects.requireNonNull(storage.listFiles()));
     }
 
+    public boolean hasChunk(String chunkID){
+        for(File chunk: this.getChunks()){
+            if(chunk.getName().equals(chunkID))
+                return true;
+        }
+        return false;
+    }
+
     public int getCapacity() {
         return max_size;
     }
