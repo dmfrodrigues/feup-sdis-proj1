@@ -25,6 +25,7 @@ public class ChunkMessage extends Message {
 
     @Override
     public void process(Peer peer) {
+        peer.getDataRecoverySocketHandler().register(getChunkID(), body);
     }
 
     public int getChunkNo() {
