@@ -1,6 +1,4 @@
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Objects;
 
 /**
@@ -64,6 +62,15 @@ public class ChunkStorageManager {
         }
 
         return true;
+    }
+
+    public void deleteFile(String fileID){
+        File storage = new File(path);
+        File[] chunks = storage.listFiles((dir, name) -> name.startsWith(fileID));
+
+        for(int i = 0; i < Objects.requireNonNull(chunks).length; i++){
+            chunks[i].delete();
+        }
     }
 
 }
