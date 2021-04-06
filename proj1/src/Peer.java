@@ -33,7 +33,6 @@ public class Peer implements PeerInterface {
 
     private final FileTable fileTable;
     private final ChunkStorageManager storageManager;
-    private final FileTable fileTable;
     private final ControlSocketHandler controlSocketHandler;
     private final DataBroadcastSocketHandler dataBroadcastSocketHandler;
     private final DataRecoverySocketHandler dataRecoverySocketHandler;
@@ -137,10 +136,10 @@ public class Peer implements PeerInterface {
         return storageManager;
     }
 
-    public FileTable getFileTable(){
+    public FileTable getFileTable() {
         return fileTable;
     }
-    
+
     public ControlSocketHandler getControlSocketHandler(){
         return controlSocketHandler;
     }
@@ -333,10 +332,26 @@ public class Peer implements PeerInterface {
             }
         }
 
+        /**
+         * @brief Register incoming chunk.
+         *
+         * Will complete the future obtained from DataRecoverySocketHandler#request(GetChunkMessage)
+         * if such request was made.
+         *
+         * @param id
+         * @param data
+         */
         public void register(String id, byte[] data){
             map.put(id, data);
         }
 
+        /**
+         * @brief Request a chunk.
+         *
+         * @param message   GetChunkMessage that will be broadcast, asking for a chunk
+         * @return          Promise of a chunk
+         * @throws IOException
+         */
         public Future<byte[]> request(GetchunkMessage message) throws IOException {
             getPeer().send(message);
             String id = message.getChunkID();

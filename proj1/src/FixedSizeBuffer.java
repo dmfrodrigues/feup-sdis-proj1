@@ -49,7 +49,7 @@ public class FixedSizeBuffer<T> {
      * @param i     Index in the queue
      * @param e     Element to insert
      */
-    public void set(int i, T e){
+    public void set(int i, T e) throws ArrayIndexOutOfBoundsException {
         if(i < begin) return;
         if(!canSet(i)) throw new ArrayIndexOutOfBoundsException();
         int idx = (begin+i)%queue.size();

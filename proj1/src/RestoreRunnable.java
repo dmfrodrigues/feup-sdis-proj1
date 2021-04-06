@@ -4,12 +4,22 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+/**
+ * @brief Runnable to restore a file.
+ */
 public class RestoreRunnable implements Runnable {
     private final Peer peer;
     private final String filename;
 
     private final FileChunkOutput fileChunkOutput;
 
+    /**
+     * @brief Construct RestoreRunnable.
+     *
+     * @param peer      Peer asking to restore a file
+     * @param filename  File name of the file to be restored
+     * @throws FileNotFoundException
+     */
     public RestoreRunnable(Peer peer, String filename) throws FileNotFoundException {
         this.peer = peer;
         this.filename = filename;
