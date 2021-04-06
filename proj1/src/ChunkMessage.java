@@ -5,7 +5,7 @@ public class ChunkMessage extends Message {
     private final byte[] body;
 
     public ChunkMessage(String version, int senderId, String fileId, int chunkNo, byte[] body, InetSocketAddress inetSocketAddress){
-        super(version, "PUTCHUNK", senderId, fileId, inetSocketAddress);
+        super(version, "CHUNK", senderId, fileId, inetSocketAddress);
 
         if(body == null) throw new NullPointerException("body");
 
