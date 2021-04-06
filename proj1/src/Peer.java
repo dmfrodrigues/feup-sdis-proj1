@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.*;
 import java.rmi.AlreadyBoundException;
@@ -172,7 +173,10 @@ public class Peer implements PeerInterface {
      *
      * @param pathname  Pathname of file to be restored
      */
-    public void restore(String pathname) {
+    public void restore(String pathname) throws FileNotFoundException {
+        Runnable runnable = new RestoreRunnable(this, pathname);
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     /**

@@ -1,6 +1,11 @@
+import java.io.IOException;
 import java.net.InetSocketAddress;
 
 public class GetchunkMessage extends Message {
+    /**
+     * How much a peer receiving this message should wait (and sense MDR) before answering
+     */
+    private static final int RESPONSE_TIMEOUT_MILLIS = 400;
     private final int chunkNo;
 
     public GetchunkMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
@@ -19,6 +24,23 @@ public class GetchunkMessage extends Message {
 
     @Override
     public void process(Peer peer) {
+        System.out.println("Processing GetchunkMessage");
+        if(!peer.getStorageManager().hasChunk(getChunkID())) return;
+        byte[] chunk;
+        try {
+            chunk = peer.getStorageManager().getChunk(getChunkID());
+        } catch (IOException e) {
+            System.err.println("Failed to ask if this peer has chunk with ID " + getChunkID());
+            e.printStackTrace();
+            return;
+        }
+        try {
+            System.out.println("Preparing to send ChunkMessage");
+            peer.send(new ChunkMessage(getVersion(), peer.getId(), getFileId(), getChunkNo(), chunk, peer.getDataRecoveryAddress()));
+        } catch (IOException e) {
+            System.err.println("Failed to answer GetchunkMessage with a ChunkMessage");
+            e.printStackTrace();
+        }
     }
 
     public int getChunkNo() {
