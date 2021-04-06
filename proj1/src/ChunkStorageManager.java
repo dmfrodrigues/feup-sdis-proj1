@@ -1,4 +1,5 @@
 import java.io.*;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -42,6 +43,14 @@ public class ChunkStorageManager {
                 return true;
         }
         return false;
+    }
+
+    public byte[] getChunk(String chunkID) throws IOException {
+        for(File chunk: this.getChunks()){
+            if(chunk.getName().equals(chunkID))
+                return Files.readAllBytes(chunk.toPath());
+        }
+        return null;
     }
 
     public int getCapacity() {
