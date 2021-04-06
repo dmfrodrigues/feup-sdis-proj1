@@ -21,10 +21,15 @@ public class BackupRunnable implements Runnable {
     @Override
     public void run() {
         int n = fileChunkIterator.length();
+
+        peer.getFileTable().setFileDesiredRepDegree(fileChunkIterator.getFileId(), replicationDegree);
+
         for(int i = 0; i < n; ++i){
             System.out.println("Sending chunk "+i);
             byte[] chunk = fileChunkIterator.next();
             PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
+
+            peer.getFileTable().setChunkDesiredRepDegree(fileChunkIterator.getFileId() + "-" + i, replicationDegree);
 
             int numStored;
             do {

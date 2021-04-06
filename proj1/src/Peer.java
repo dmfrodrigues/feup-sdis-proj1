@@ -60,8 +60,7 @@ public class Peer implements PeerInterface {
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        // Load file table
-        fileTable = new FileTable();
+        fileTable = new FileTable("../bin/"+id);
         fileTable.load();
 
         // Create sockets
@@ -194,12 +193,24 @@ public class Peer implements PeerInterface {
      * @param space_kbytes  Amount of space, in kilobytes (KB, K=1000)
      */
     public void reclaim(int space_kbytes) {
+        Runnable runnable = new ReclaimRunnable(this, space_kbytes);
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     /**
      * Get state information on the peer.
      */
-    public void state() {
+    public String state() {
+        StateRunnable runnable = new StateRunnable(this, storageManager);
+        Thread thread = new Thread(runnable);
+        thread.start();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return runnable.getStatus();
     }
 
     public void send(Message message) throws IOException {
@@ -221,6 +232,13 @@ public class Peer implements PeerInterface {
         int ret = (storedMessages != null ? storedMessages.size() : 0);
         if(storedMessages != null) storedMessages.clear();
         return ret;
+    }
+
+    boolean inRemovedProcess = false;
+    List<String> putChunkFileIDs = new ArrayList<String>();
+    public void pushPutChunkFileIDs(String fileID) {
+        if(inRemovedProcess)
+            putChunkFileIDs.add(fileID);
     }
 
     public abstract class SocketHandler implements Runnable {
@@ -272,9 +290,10 @@ public class Peer implements PeerInterface {
 
         @Override
         protected void handle(Message message) {
-            if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof DeleteMessage) {
+            if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof RemovedMessage  || message instanceof DeleteMessage) {
                 if (message instanceof StoredMessage  ) System.out.println("STORED"  );
                 if (message instanceof GetchunkMessage) System.out.println("GETCHUNK");
+                if (message instanceof RemovedMessage) System.out.println("REMOVED");
                 if (message instanceof DeleteMessage) System.out.println("DELETE");
                 message.process(getPeer());
             }
