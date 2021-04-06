@@ -315,8 +315,16 @@ public class Peer implements PeerInterface {
     }
 
     public class DataRecoverySocketHandler extends SocketHandler {
+        /**
+         * Executor; is used to execute the promises.
+         * */
         private ExecutorService executor = Executors.newSingleThreadExecutor();
-
+        /**
+         * Map of already-received chunks;
+         * chunks are stored in this map by DataRecoverySocketHandler#register(String, byte[]),
+         * and the futures returned by DataRecoverySocketHandler#request(GetchunkMessage) periodically check this map
+         * for the desired chunk.
+         */
         Map<String, byte[]> map = new HashMap<>();
 
         public DataRecoverySocketHandler(Peer peer, DatagramSocket socket) {
@@ -335,11 +343,11 @@ public class Peer implements PeerInterface {
         /**
          * @brief Register incoming chunk.
          *
-         * Will complete the future obtained from DataRecoverySocketHandler#request(GetChunkMessage)
+         * Will complete the future obtained from DataRecoverySocketHandler#request(GetchunkMessage)
          * if such request was made.
          *
-         * @param id
-         * @param data
+         * @param id    Chunk ID (file ID + chunk sequential number)
+         * @param data  Contents of that chunk
          */
         public void register(String id, byte[] data){
             map.put(id, data);
