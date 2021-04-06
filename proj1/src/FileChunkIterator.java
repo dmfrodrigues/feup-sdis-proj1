@@ -5,6 +5,12 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.function.Consumer;
 
+/**
+ * @brief File chunk iterator.
+ *
+ * Iterator over chunks of an existing file.
+ * Is used to read a file one chunk at a time.
+ */
 public class FileChunkIterator implements Iterator<byte[]> {
     private static final int MAX_LENGTH = 1000000;
 
@@ -15,7 +21,7 @@ public class FileChunkIterator implements Iterator<byte[]> {
     FileInputStream fileStream;
 
     /**
-     * @brief Construct ChunkedFile.
+     * @brief Construct FileChunkIterator.
      *
      * @param file      File to parse
      */
@@ -23,7 +29,7 @@ public class FileChunkIterator implements Iterator<byte[]> {
         this(peer, file, 64000);
     }
     /**
-     * @brief Construct ChunkedFile.
+     * @brief Construct FileChunkIterator.
      *
      * @param file      File to parse
      * @param chunkSize Chunk size, in bytes; defaults to 64kB = 64000B
