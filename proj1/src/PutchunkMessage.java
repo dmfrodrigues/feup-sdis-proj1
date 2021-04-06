@@ -29,7 +29,13 @@ public class PutchunkMessage extends Message {
     @Override
     public void process(Peer peer) {
         String chunkId = getChunkID();
-        peer.getStorageManager().saveChunk(chunkId, body);
+        if(!peer.getStorageManager().saveChunk(chunkId, body))
+            return;
+
+        peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);
+        peer.getFileTable().incrementActualRepDegree(chunkId);
+        peer.pushPutChunkFileIDs(getFileId());
+
         Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {
             peer.send(response);

@@ -7,5 +7,5 @@ public interface PeerInterface extends Remote {
     void restore(String pathname) throws RemoteException;
     void delete(String pathname) throws RemoteException;
     void reclaim(int space_kbytes) throws RemoteException;
-    void state() throws RemoteException;
+    String state() throws RemoteException;
 }
