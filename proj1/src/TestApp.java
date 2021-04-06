@@ -55,6 +55,8 @@ public class TestApp {
                 replicationDegree = Integer.parseInt(args[3]);
                 break;
             case "RESTORE":
+                filepath = args[2];
+                break;
             case "DELETE":
                 filepath = args[2];
                 break;
