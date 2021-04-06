@@ -272,7 +272,7 @@ public class Peer implements PeerInterface {
                     Message message = messageFactory.factoryMethod(packet);
                     if(message.getSenderId() != peer.getId())
                         handle(message);
-                } catch (IOException e) {
+                } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }
