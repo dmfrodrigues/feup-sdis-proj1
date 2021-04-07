@@ -7,6 +7,10 @@ public class BackupRunnable implements Runnable {
      * Time to wait before resending a backup request, in milliseconds.
      */
     private static final int WAIT_MILLIS = 1000;
+    /**
+     * Maximum attempts to transmit backup messages per chunk.
+     */
+    private static final int ATTEMPTS = 5;
 
     private final Peer peer;
     private final FileChunkIterator fileChunkIterator;
@@ -31,7 +35,7 @@ public class BackupRunnable implements Runnable {
 
             peer.getFileTable().setChunkDesiredRepDegree(fileChunkIterator.getFileId() + "-" + i, replicationDegree);
 
-            int numStored;
+            int numStored, attempts=0;
             do {
                 try {
                     peer.send(message);
@@ -40,11 +44,12 @@ public class BackupRunnable implements Runnable {
                     e.printStackTrace();
                 }
                 try {
-                    sleep(WAIT_MILLIS);
+                    sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
                 } catch (InterruptedException ignored) {}
                 numStored = peer.popStoredMessages(message);
                 System.out.println("    Got " + numStored + " stored messages");
-            } while(numStored < replicationDegree);
+                attempts++;
+            } while(numStored < replicationDegree && attempts < ATTEMPTS);
         }
     }
 }
