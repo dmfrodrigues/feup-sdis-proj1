@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Peer implements PeerInterface {
     /**
@@ -374,6 +375,25 @@ public class Peer implements PeerInterface {
                 } while(ret == null);
                 return ret;
             });
+        }
+
+        /**
+         * @brief Senses data recovery channel for an answer to a GetchunkMessage.
+         *
+         * @param getchunkMessage   Message to check if there is an answer to
+         * @param millis            Milliseconds to wait for
+         * @return
+         */
+        public boolean sense(GetchunkMessage getchunkMessage, int millis) {
+            int timeout = ThreadLocalRandom.current().nextInt(0, millis);
+            try {
+                Thread.sleep(timeout);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            boolean b = map.containsKey(getchunkMessage.getChunkID());
+            if(b) map.remove(getchunkMessage.getChunkID());
+            return b;
         }
     }
 }
