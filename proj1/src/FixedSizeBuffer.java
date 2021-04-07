@@ -13,6 +13,10 @@ import java.util.List;
 public class FixedSizeBuffer<T> {
     List<T> queue;
     boolean[] ready;
+    /**
+     * Index of the first available element.
+     * Does not wrap when it is larger than queue.size().
+     */
     int begin = 0;
 
     public FixedSizeBuffer(int size){
@@ -52,7 +56,7 @@ public class FixedSizeBuffer<T> {
     public void set(int i, T e) throws ArrayIndexOutOfBoundsException {
         if(i < begin) return;
         if(!canSet(i)) throw new ArrayIndexOutOfBoundsException();
-        int idx = (begin+i)%queue.size();
+        int idx = i % queue.size();
         ready[idx] = true;
         queue.set(idx, e);
     }
@@ -63,7 +67,8 @@ public class FixedSizeBuffer<T> {
      * @return  True if the queue already has the next element to be extracted, false otherwise
      */
     public boolean hasNext(){
-        return ready[begin];
+        int idx = begin % queue.size();
+        return ready[idx];
     }
 
     /**
@@ -75,9 +80,10 @@ public class FixedSizeBuffer<T> {
      */
     public T next(){
         if(!hasNext()) throw new IllegalStateException();
-        T ret = queue.get(begin);
-        ready[begin] = false;
-        begin = (begin+1)%queue.size();
+        int idx = begin % queue.size();
+        T ret = queue.get(idx);
+        ready[idx] = false;
+        begin++;
         return ret;
     }
 }
