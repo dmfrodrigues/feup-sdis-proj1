@@ -36,6 +36,14 @@ public class PutchunkMessage extends Message {
         peer.getFileTable().incrementActualRepDegree(chunkId);
         peer.pushPutChunkFileIDs(getFileId());
 
+        int wait_time = peer.getRandom().nextInt(400);
+        try {
+            Thread.sleep(wait_time);
+        } catch (InterruptedException e) {
+            System.err.println("Sleep got interrupted; resuming");
+            e.printStackTrace();
+        }
+
         Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {
             peer.send(response);
