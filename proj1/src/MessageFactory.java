@@ -19,10 +19,9 @@ public class MessageFactory {
         String fileId = headerSplit[3];
 
         // Messages without body
-        switch (messageType) {
-            case "DELETE": return new DeleteMessage(version, senderId, fileId, inetSocketAddress);
-            default: break;
-        };
+        if (messageType.equals("DELETE")) {
+            return new DeleteMessage(version, senderId, fileId, inetSocketAddress);
+        }
 
         int chunkNo = Integer.parseInt(headerSplit[4]);
         switch (messageType) {
@@ -30,21 +29,19 @@ public class MessageFactory {
             case "GETCHUNK": return new GetchunkMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             case "REMOVED": return new RemovedMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             default: break;
-        };
+        }
 
         // Messages with body
         int bodyOffset = Utils.find_nth(data, new byte[]{'\r', '\n'}, 2)+2;
         byte[] body = Arrays.copyOfRange(data, bodyOffset, data.length);
-        switch (messageType) {
-            case "CHUNK": return new ChunkMessage(version, senderId, fileId, chunkNo, body, inetSocketAddress);
-            default: break;
-        };
+        if (messageType.equals("CHUNK")) {
+            return new ChunkMessage(version, senderId, fileId, chunkNo, body, inetSocketAddress);
+        }
 
         int replicationDeg = Integer.parseInt(headerSplit[5]);
-        switch (messageType) {
-            case "PUTCHUNK": return new PutchunkMessage(version, senderId, fileId, chunkNo, replicationDeg, body, inetSocketAddress);
-            default: break;
-        };
+        if (messageType.equals("PUTCHUNK")) {
+            return new PutchunkMessage(version, senderId, fileId, chunkNo, replicationDeg, body, inetSocketAddress);
+        }
 
         throw new ClassNotFoundException(messageType);
     }

@@ -1,22 +1,20 @@
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 public class ReclaimRunnable implements Runnable {
 
-    private Peer peer;
-    private int space_kbytes;
+    private final Peer peer;
+    private final int space_kb;
 
-    public ReclaimRunnable(Peer peer, int space_kbytes) {
+    public ReclaimRunnable(Peer peer, int space_kb) {
         this.peer = peer;
-        this.space_kbytes = space_kbytes;
+        this.space_kb = space_kb;
     }
 
     @Override
     public void run() {
-        if(peer.getStorageManager().getMemoryUsed() > space_kbytes*1000){
+        if(peer.getStorageManager().getMemoryUsed() > space_kb *1000){
             List<File> chunks = peer.getStorageManager().getChunks();
             for (File file : chunks) {
                 RemovedMessage message = new RemovedMessage(peer.getVersion(), peer.getId(),
@@ -31,10 +29,10 @@ public class ReclaimRunnable implements Runnable {
                     e.printStackTrace();
                 }
 
-                if (peer.getStorageManager().getMemoryUsed() <= space_kbytes * 1000)
+                if (peer.getStorageManager().getMemoryUsed() <= space_kb * 1000)
                     break;
             }
         }
-        peer.getStorageManager().setMaxSize(space_kbytes*1000);
+        peer.getStorageManager().setMaxSize(space_kb *1000);
     }
 }

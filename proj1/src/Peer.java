@@ -26,10 +26,6 @@ public class Peer implements PeerInterface {
     private final InetSocketAddress dataBroadcastAddress;
     private final InetSocketAddress dataRecoveryAddress;
 
-    private final MulticastSocket controlSocket;
-    private final MulticastSocket dataBroadcastSocket;
-    private final MulticastSocket dataRecoverySocket;
-
     private final FileTable fileTable;
     private final ChunkStorageManager storageManager;
     private final ControlSocketHandler controlSocketHandler;
@@ -64,18 +60,18 @@ public class Peer implements PeerInterface {
         fileTable.load();
 
         // Create sockets
-        controlSocket       = new MulticastSocket(this.controlAddress      .getPort());
-        dataBroadcastSocket = new MulticastSocket(this.dataBroadcastAddress.getPort());
-        dataRecoverySocket  = new MulticastSocket(this.dataRecoveryAddress .getPort());
+        MulticastSocket controlSocket = new MulticastSocket(this.controlAddress.getPort());
+        MulticastSocket dataBroadcastSocket = new MulticastSocket(this.dataBroadcastAddress.getPort());
+        MulticastSocket dataRecoverySocket = new MulticastSocket(this.dataRecoveryAddress.getPort());
         // Have sockets join corresponding groups
-        controlSocket      .joinGroup(this.controlAddress      .getAddress());
+        controlSocket.      joinGroup(this.controlAddress      .getAddress());
         dataBroadcastSocket.joinGroup(this.dataBroadcastAddress.getAddress());
         dataRecoverySocket .joinGroup(this.dataRecoveryAddress .getAddress());
 
         // Create socket handlers
-        controlSocketHandler       = new ControlSocketHandler      (this, controlSocket      );
+        controlSocketHandler       = new ControlSocketHandler      (this, controlSocket);
         dataBroadcastSocketHandler = new DataBroadcastSocketHandler(this, dataBroadcastSocket);
-        dataRecoverySocketHandler  = new DataRecoverySocketHandler (this, dataRecoverySocket );
+        dataRecoverySocketHandler  = new DataRecoverySocketHandler (this, dataRecoverySocket);
 
         Thread controlSocketHandlerThread       = new Thread(controlSocketHandler);
         Thread dataBroadcastSocketHandlerThread = new Thread(dataBroadcastSocketHandler);
@@ -89,8 +85,8 @@ public class Peer implements PeerInterface {
         return random;
     }
 
-    public class CleanupRemoteObjectRunnable implements Runnable {
-        private String remoteObjName;
+    public static class CleanupRemoteObjectRunnable implements Runnable {
+        private final String remoteObjName;
 
         public CleanupRemoteObjectRunnable(String remoteObjName) {
             this.remoteObjName = remoteObjName;
@@ -197,10 +193,10 @@ public class Peer implements PeerInterface {
     /**
      * Set space the peer may use to backup chunks from other machines.
      *
-     * @param space_kbytes  Amount of space, in kilobytes (KB, K=1000)
+     * @param space_kb  Amount of space, in kilobytes (KB, K=1000)
      */
-    public void reclaim(int space_kbytes) {
-        Runnable runnable = new ReclaimRunnable(this, space_kbytes);
+    public void reclaim(int space_kb) {
+        Runnable runnable = new ReclaimRunnable(this, space_kb);
         Thread thread = new Thread(runnable);
         thread.start();
     }
@@ -225,8 +221,7 @@ public class Peer implements PeerInterface {
         sendSocket.send(packet);
     }
 
-    Map<Pair<String, Integer>, Set<Integer>> storedMessageMap =
-            new HashMap<>();
+    private final Map<Pair<String, Integer>, Set<Integer>> storedMessageMap = new HashMap<>();
     public void pushStoredMessage(StoredMessage storedMessage) {
         Pair<String, Integer> key = new Pair<>(storedMessage.getFileId(), storedMessage.getChunkNo());
         if(!storedMessageMap.containsKey(key))
@@ -241,7 +236,7 @@ public class Peer implements PeerInterface {
         return ret;
     }
 
-    public abstract class SocketHandler implements Runnable {
+    public abstract static class SocketHandler implements Runnable {
         private static final int BUFFER_LENGTH = 80000;
 
         private final Peer peer;
@@ -283,7 +278,7 @@ public class Peer implements PeerInterface {
         }
     }
 
-    public class ControlSocketHandler extends SocketHandler {
+    public static class ControlSocketHandler extends SocketHandler {
         public ControlSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
         }
@@ -296,7 +291,7 @@ public class Peer implements PeerInterface {
         }
     }
 
-    public class DataBroadcastSocketHandler extends SocketHandler {
+    public static class DataBroadcastSocketHandler extends SocketHandler {
 
         private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
@@ -349,7 +344,7 @@ public class Peer implements PeerInterface {
 
     }
 
-    public class DataRecoverySocketHandler extends SocketHandler {
+    public static class DataRecoverySocketHandler extends SocketHandler {
         /**
          * Executor; is used to execute the promises.
          *
@@ -396,7 +391,7 @@ public class Peer implements PeerInterface {
          *
          * @param message   GetChunkMessage that will be broadcast, asking for a chunk
          * @return          Promise of a chunk
-         * @throws IOException
+         * @throws IOException  If send fails
          */
         public Future<byte[]> request(GetchunkMessage message) throws IOException {
             getPeer().send(message);
@@ -431,7 +426,7 @@ public class Peer implements PeerInterface {
          *
          * @param getchunkMessage   Message to check if there is an answer to
          * @param millis            Milliseconds to wait for
-         * @return
+         * @return                  True if channel was sensed busy with a message replying to getchunkMessage, false otherwise
          */
         public boolean sense(GetchunkMessage getchunkMessage, int millis) {
             int timeout = getPeer().getRandom().nextInt(millis);

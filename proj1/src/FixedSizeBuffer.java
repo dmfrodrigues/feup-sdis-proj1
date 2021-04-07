@@ -11,13 +11,13 @@ import java.util.List;
  * @param <T>
  */
 public class FixedSizeBuffer<T> {
-    List<T> queue;
-    boolean[] ready;
+    private final List<T> queue;
+    private final boolean[] ready;
     /**
      * Index of the first available element.
      * Does not wrap when it is larger than queue.size().
      */
-    int begin = 0;
+    private int begin = 0;
 
     public FixedSizeBuffer(int size){
         queue = new ArrayList<>(size);

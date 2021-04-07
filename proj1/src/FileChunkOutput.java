@@ -20,7 +20,7 @@ public class FileChunkOutput {
      * Create FileChunkOutput.
      *
      * @param file  File to sync with/write to
-     * @throws FileNotFoundException
+     * @throws FileNotFoundException If file is not found (never thrown, as file needs not exist)
      */
     public FileChunkOutput(File file) throws FileNotFoundException {
         fileOutputStream = new FileOutputStream(file);
