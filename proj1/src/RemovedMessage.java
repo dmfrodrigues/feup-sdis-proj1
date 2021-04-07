@@ -6,11 +6,11 @@ import java.net.InetSocketAddress;
 import static java.lang.Thread.sleep;
 import java.io.File;
 import java.util.Arrays;
-import java.util.Random;
 
 public class RemovedMessage extends Message {
     private final int chunkNo;
     private static final int WAIT_MILLIS = 1000;
+    private static final int ATTEMPTS = 5;
 
     public RemovedMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
         super(version, "REMOVED", senderId, fileId, inetSocketAddress);
@@ -29,8 +29,6 @@ public class RemovedMessage extends Message {
     @Override
     public void process(Peer peer) {
 
-        System.out.println("Got Removed!");
-
         peer.getFileTable().decrementActualRepDegree(getChunkID());// update local count
 
         if(!peer.getStorageManager().hasChunk(getChunkID()))
@@ -38,22 +36,8 @@ public class RemovedMessage extends Message {
 
         if(peer.getFileTable().getActualRepDegree(getChunkID()) < peer.getFileTable().getChunkDesiredRepDegree(getChunkID())){
 
-            // sleep random 0-400
-            int wait_time = peer.getRandom().nextInt(400);
-
-            try {
-                peer.inRemovedProcess = true;
-                sleep(wait_time);
-                peer.inRemovedProcess = false;
-            } catch (InterruptedException ignored) {}
-
-            // if receive PutChunk of this chunkID -> abort
-            for(String _fileID: peer.putChunkFileIDs)
-                if(_fileID.equals(getFileId())) {
-                    peer.putChunkFileIDs.clear();
-                    return;
-                }
-            peer.putChunkFileIDs.clear();
+            // checks if in a random interval a PutChunk message for this chunkID was received
+            if(peer.getDataBroadcastSocketHandler().sense(this, 400)) return;
 
             // Open chunk
 
@@ -78,15 +62,23 @@ public class RemovedMessage extends Message {
                     getFileId(), chunkNo,
                     peer.getFileTable().getChunkDesiredRepDegree(getFileId()), chunk, peer.getDataBroadcastAddress()
             );
-            try {
-                peer.send(message);
-                System.out.println("    Sent chunk " + chunkNo);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                sleep(WAIT_MILLIS);
-            } catch (InterruptedException ignored) {}
+            int numStored, attempts = 0;
+            do {
+                try {
+                    peer.send(message);
+                    System.out.println("    Sent chunk " + chunkNo);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
+                } catch (InterruptedException ignored) {
+                }
+                numStored = peer.popStoredMessages(message);
+                System.out.println("    Got " + numStored + " stored messages");
+                attempts++;
+            }while( numStored < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)
+                    && attempts < ATTEMPTS);
         }
     }
 
