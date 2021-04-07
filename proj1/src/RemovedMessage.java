@@ -10,6 +10,7 @@ import java.util.Arrays;
 public class RemovedMessage extends Message {
     private final int chunkNo;
     private static final int WAIT_MILLIS = 1000;
+    private static final int ATTEMPTS = 5;
 
     public RemovedMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
         super(version, "REMOVED", senderId, fileId, inetSocketAddress);
@@ -27,8 +28,6 @@ public class RemovedMessage extends Message {
 
     @Override
     public void process(Peer peer) {
-
-        System.out.println("Got Removed!");
 
         peer.getFileTable().decrementActualRepDegree(getFileId() + "-" + chunkNo);// update local count
 
@@ -63,15 +62,23 @@ public class RemovedMessage extends Message {
                     getFileId(), chunkNo,
                     peer.getFileTable().getChunkDesiredRepDegree(getFileId()), chunk, peer.getDataBroadcastAddress()
             );
-            try {
-                peer.send(message);
-                System.out.println("    Sent chunk " + chunkNo);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                sleep(WAIT_MILLIS);
-            } catch (InterruptedException ignored) {}
+            int numStored, attempts = 0;
+            do {
+                try {
+                    peer.send(message);
+                    System.out.println("    Sent chunk " + chunkNo);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
+                } catch (InterruptedException ignored) {
+                }
+                numStored = peer.popStoredMessages(message);
+                System.out.println("    Got " + numStored + " stored messages");
+                attempts++;
+            }while( numStored < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)
+                    && attempts < ATTEMPTS);
         }
     }
 
