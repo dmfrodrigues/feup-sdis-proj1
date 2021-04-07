@@ -3,11 +3,22 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @brief Runnable to restore a file.
  */
 public class RestoreRunnable implements Runnable {
+    /**
+     * Timeout of waiting for a CHUNK response to a GETCHUNK message, in milliseconds.
+     */
+    private final static long TIMEOUT_MILLIS = 1000;
+    /**
+     * Number of attempts before giving up to receive CHUNK.
+     */
+    private final static int ATTEMPTS = 5;
+
     private final Peer peer;
     private final String filename;
 
@@ -18,7 +29,7 @@ public class RestoreRunnable implements Runnable {
      *
      * @param peer      Peer asking to restore a file
      * @param filename  File name of the file to be restored
-     * @throws FileNotFoundException
+     * @throws FileNotFoundException    If file is not found
      */
     public RestoreRunnable(Peer peer, String filename) throws FileNotFoundException {
         this.peer = peer;
@@ -34,14 +45,41 @@ public class RestoreRunnable implements Runnable {
         for(int i = 0; i < numberChunks; ++i){
             System.out.println("Trying to get chunk " + i);
             GetchunkMessage message = new GetchunkMessage(peer.getVersion(), peer.getId(), fileId, i, peer.getControlAddress());
-            try {
-                Future<byte[]> f = peer.getDataRecoverySocketHandler().request(message);
+            byte[] chunk = null;
+            for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
+                // Make request
+                Future<byte[]> f;
+                try {
+                    f = peer.getDataRecoverySocketHandler().request(message);
+                } catch (IOException e) {
+                    System.err.println("Failed to make request, trying again");
+                    e.printStackTrace();
+                    continue;
+                }
                 System.out.println("    Asked for chunk " + i);
-                byte[] chunk = f.get();
-                System.out.println("    Got chunk " + i);
-                fileChunkOutput.set(i, chunk);
-            } catch (IOException | ExecutionException | InterruptedException ignored) {}
 
+                // Wait for request to be satisfied
+                try {
+                    chunk = f.get(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    System.err.println("Future execution interrupted, trying again");
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    System.err.println("Future execution caused an exception, trying again");
+                    e.printStackTrace();
+                } catch (TimeoutException e) {
+                    System.err.println("Timed out waiting for CHUNK, trying again");
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("    Got chunk " + i);
+            try {
+                fileChunkOutput.set(i, chunk);
+            } catch (IOException e) {
+                System.err.println("Failed to set chunk to file chunk output");
+                e.printStackTrace();
+                break;
+            }
         }
         try {
             fileChunkOutput.close();
