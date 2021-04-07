@@ -31,6 +31,7 @@ public class PutchunkMessage extends Message {
         String chunkId = getChunkID();
         if(!peer.getStorageManager().saveChunk(chunkId, body))
             return;
+        System.out.println("Saved chunk " + chunkId);
 
         peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);
         peer.getFileTable().incrementActualRepDegree(chunkId);
@@ -56,7 +57,7 @@ public class PutchunkMessage extends Message {
         return chunkNo;
     }
 
-    private String getChunkID() {
+    public String getChunkID() {
         return getFileId() + "-" + getChunkNo();
     }
 }

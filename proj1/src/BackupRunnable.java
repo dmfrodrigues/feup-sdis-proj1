@@ -29,7 +29,6 @@ public class BackupRunnable implements Runnable {
         peer.getFileTable().setFileDesiredRepDegree(fileChunkIterator.getFileId(), replicationDegree);
 
         for(int i = 0; i < n; ++i){
-            System.out.println("Sending chunk "+i);
             byte[] chunk = fileChunkIterator.next();
             PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
@@ -39,7 +38,7 @@ public class BackupRunnable implements Runnable {
             do {
                 try {
                     peer.send(message);
-                    System.out.println("    Sent chunk "+i);
+                    System.out.println("Sent chunk " + message.getChunkID());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -47,7 +46,7 @@ public class BackupRunnable implements Runnable {
                     sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
                 } catch (InterruptedException ignored) {}
                 numStored = peer.popStoredMessages(message);
-                System.out.println("    Got " + numStored + " stored messages");
+                System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
                 attempts++;
             } while(numStored < replicationDegree && attempts < ATTEMPTS);
         }

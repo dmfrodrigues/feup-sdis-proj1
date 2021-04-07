@@ -24,6 +24,7 @@ public class GetchunkMessage extends Message {
 
     @Override
     public void process(Peer peer) {
+        System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
         if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
         byte[] chunk;
@@ -34,12 +35,14 @@ public class GetchunkMessage extends Message {
             e.printStackTrace();
             return;
         }
+        ChunkMessage message = new ChunkMessage(getVersion(), peer.getId(), getFileId(), getChunkNo(), chunk, peer.getDataRecoveryAddress());
         try {
-            peer.send(new ChunkMessage(getVersion(), peer.getId(), getFileId(), getChunkNo(), chunk, peer.getDataRecoveryAddress()));
+            peer.send(message);
         } catch (IOException e) {
             System.err.println("Failed to answer GetchunkMessage with a ChunkMessage");
             e.printStackTrace();
         }
+        System.out.println("Sent chunk " + message.getChunkID());
     }
 
     public int getChunkNo() {

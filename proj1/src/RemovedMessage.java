@@ -31,12 +31,12 @@ public class RemovedMessage extends Message {
 
         System.out.println("Got Removed!");
 
-        peer.getFileTable().decrementActualRepDegree(getFileId() + "-" + chunkNo);// update local count
+        peer.getFileTable().decrementActualRepDegree(getChunkID());// update local count
 
-        if(!peer.getStorageManager().hasChunk(getFileId() + "-" + chunkNo))
+        if(!peer.getStorageManager().hasChunk(getChunkID()))
             return;
 
-        if(peer.getFileTable().getActualRepDegree(getFileId() + "-" + chunkNo) < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)){
+        if(peer.getFileTable().getActualRepDegree(getChunkID()) < peer.getFileTable().getChunkDesiredRepDegree(getChunkID())){
 
             // sleep random 0-400
             int wait_time = peer.getRandom().nextInt(400);
@@ -57,7 +57,7 @@ public class RemovedMessage extends Message {
 
             // Open chunk
 
-            File file = new File(peer.getStorageManager().getPath() + "/" + getFileId() + "-" + chunkNo);
+            File file = new File(peer.getStorageManager().getPath() + "/" + getChunkID());
 
             byte[] chunk = new byte[(int) file.length()];
             try {
@@ -88,5 +88,13 @@ public class RemovedMessage extends Message {
                 sleep(WAIT_MILLIS);
             } catch (InterruptedException ignored) {}
         }
+    }
+
+    public int getChunkNo() {
+        return chunkNo;
+    }
+
+    public String getChunkID() {
+        return getFileId() + "-" + getChunkNo();
     }
 }

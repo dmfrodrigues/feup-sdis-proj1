@@ -17,6 +17,7 @@ public class DeleteMessage extends Message{
 
     @Override
     public void process(Peer peer) {
+        System.out.println("Peer " + getSenderId() + " requested file " + getFileId() + " to be deleted");
         peer.getStorageManager().deleteFile(this.getFileId());
     }
 }

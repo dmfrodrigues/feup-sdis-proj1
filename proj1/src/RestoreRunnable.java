@@ -43,7 +43,6 @@ public class RestoreRunnable implements Runnable {
         String fileId = peer.getFileTable().getFileID(filename);
         Integer numberChunks = peer.getFileTable().getNumberChunks(filename);
         for(int i = 0; i < numberChunks; ++i){
-            System.out.println("Trying to get chunk " + i);
             GetchunkMessage message = new GetchunkMessage(peer.getVersion(), peer.getId(), fileId, i, peer.getControlAddress());
             byte[] chunk = null;
             for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
@@ -56,7 +55,7 @@ public class RestoreRunnable implements Runnable {
                     e.printStackTrace();
                     continue;
                 }
-                System.out.println("    Asked for chunk " + i);
+                System.out.println("Asked for chunk " + message.getChunkID());
 
                 // Wait for request to be satisfied
                 try {
@@ -72,7 +71,7 @@ public class RestoreRunnable implements Runnable {
                     e.printStackTrace();
                 }
             }
-            System.out.println("    Got chunk " + i);
+            System.out.println("Promise completed, received chunk " + message.getChunkID());
             try {
                 fileChunkOutput.set(i, chunk);
             } catch (IOException e) {
