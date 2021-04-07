@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.*;
 import java.rmi.AlreadyBoundException;
@@ -8,6 +9,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class Peer implements PeerInterface {
     /**
@@ -169,7 +171,10 @@ public class Peer implements PeerInterface {
      *
      * @param pathname  Pathname of file to be restored
      */
-    public void restore(String pathname) {
+    public void restore(String pathname) throws FileNotFoundException {
+        Runnable runnable = new RestoreRunnable(this, pathname);
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     /**
@@ -312,6 +317,21 @@ public class Peer implements PeerInterface {
     }
 
     public class DataRecoverySocketHandler extends SocketHandler {
+        /**
+         * Executor; is used to execute the promises.
+         *
+         * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
+         * being used.
+         */
+        private final ExecutorService executor = Executors.newFixedThreadPool(4);
+        /**
+         * Map of already-received chunks;
+         * chunks are stored in this map by DataRecoverySocketHandler#register(String, byte[]),
+         * and the futures returned by DataRecoverySocketHandler#request(GetchunkMessage) periodically check this map
+         * for the desired chunk.
+         */
+        final Map<String, byte[]> map = new HashMap<>();
+
         public DataRecoverySocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
         }
@@ -323,6 +343,78 @@ public class Peer implements PeerInterface {
 
                 message.process(getPeer());
             }
+        }
+
+        /**
+         * @brief Register incoming chunk.
+         *
+         * Will complete the future obtained from DataRecoverySocketHandler#request(GetchunkMessage)
+         * if such request was made.
+         *
+         * @param id    Chunk ID (file ID + chunk sequential number)
+         * @param data  Contents of that chunk
+         */
+        public void register(String id, byte[] data){
+            synchronized(map){
+                map.put(id, data);
+            }
+        }
+
+        /**
+         * @brief Request a chunk.
+         *
+         * @param message   GetChunkMessage that will be broadcast, asking for a chunk
+         * @return          Promise of a chunk
+         * @throws IOException
+         */
+        public Future<byte[]> request(GetchunkMessage message) throws IOException {
+            getPeer().send(message);
+            String id = message.getChunkID();
+            return getChunkPromise(id);
+        }
+
+        /**
+         * @brief Gets promise for a CHUNK message.
+         *
+         * This promise represents the CHUNK message that will be received after asking by the chunk with a certain ID.
+         *
+         * When the intended CHUNK message is found in the map, it is removed from the map and returned.
+         *
+         * @param chunkId   ID of the chunk
+         * @return          Future of the chunk
+         */
+        private Future<byte[]> getChunkPromise(String chunkId){
+            return executor.submit(() -> {
+                byte[] ret;
+                do {
+                    synchronized (map) {
+                        ret = map.remove(chunkId);
+                    }
+                } while(ret == null);
+                return ret;
+            });
+        }
+
+        /**
+         * @brief Senses data recovery channel for an answer to a GetchunkMessage.
+         *
+         * @param getchunkMessage   Message to check if there is an answer to
+         * @param millis            Milliseconds to wait for
+         * @return
+         */
+        public boolean sense(GetchunkMessage getchunkMessage, int millis) {
+            int timeout = ThreadLocalRandom.current().nextInt(0, millis);
+            Future<byte[]> f = getChunkPromise(getchunkMessage.getChunkID());
+            try {
+                f.get(timeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException e) {
+                System.err.println("Future failed, returning false");
+                e.printStackTrace();
+                return false;
+            } catch (TimeoutException e) {
+                return false;
+            }
+            return true;
         }
     }
 }
