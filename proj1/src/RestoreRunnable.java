@@ -43,6 +43,10 @@ public class RestoreRunnable implements Runnable {
             } catch (IOException | ExecutionException | InterruptedException ignored) {}
 
         }
-
+        try {
+            fileChunkOutput.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
