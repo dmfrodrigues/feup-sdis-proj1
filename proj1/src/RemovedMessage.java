@@ -5,9 +5,7 @@ import java.net.InetSocketAddress;
 
 import static java.lang.Thread.sleep;
 import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Date;
 
 public class RemovedMessage extends Message {
     private final int chunkNo;
@@ -40,12 +38,8 @@ public class RemovedMessage extends Message {
         if(peer.getFileTable().getActualRepDegree(getFileId() + "-" + chunkNo) < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)){
 
             // checks if in a random interval a PutChunk message for this chunkID was received
-            Date date1 = new Date(); // This object contains the current date value
-            SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-            System.out.println(formatter.format(date1));
             if(peer.getDataBroadcastSocketHandler().sense(this, 400)) return;
-            Date date2 = new Date();
-            System.out.println(formatter.format(date2));
+
             // Open chunk
 
             File file = new File(peer.getStorageManager().getPath() + "/" + getFileId() + "-" + chunkNo);
