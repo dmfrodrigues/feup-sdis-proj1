@@ -8,7 +8,6 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Random;
 
 public class RemovedMessage extends Message {
     private final int chunkNo;
@@ -29,7 +28,7 @@ public class RemovedMessage extends Message {
     }
 
     @Override
-    public synchronized void process(Peer peer) {
+    public void process(Peer peer) {
 
         System.out.println("Got Removed!");
 

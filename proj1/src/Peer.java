@@ -36,6 +36,8 @@ public class Peer implements PeerInterface {
     private final DataBroadcastSocketHandler dataBroadcastSocketHandler;
     private final DataRecoverySocketHandler dataRecoverySocketHandler;
 
+    private final Random random = new Random(System.currentTimeMillis());
+
     public Peer(
             String version,
             int id,
@@ -81,6 +83,10 @@ public class Peer implements PeerInterface {
         controlSocketHandlerThread      .start();
         dataBroadcastSocketHandlerThread.start();
         dataRecoverySocketHandlerThread .start();
+    }
+
+    public Random getRandom() {
+        return random;
     }
 
     public class CleanupRemoteObjectRunnable implements Runnable {
@@ -332,7 +338,7 @@ public class Peer implements PeerInterface {
         }
         public boolean sense(RemovedMessage removedMessage, int millis) {
             map.clear();
-            int timeout = ThreadLocalRandom.current().nextInt(0, millis);
+            int timeout = getPeer().getRandom().nextInt(millis);
             Future<byte[]> f = getPutChunkPromise(removedMessage.getChunkID());
             try {
                 f.get(timeout, TimeUnit.MILLISECONDS);
@@ -436,7 +442,7 @@ public class Peer implements PeerInterface {
          * @return
          */
         public boolean sense(GetchunkMessage getchunkMessage, int millis) {
-            int timeout = ThreadLocalRandom.current().nextInt(0, millis);
+            int timeout = getPeer().getRandom().nextInt(millis);
             Future<byte[]> f = getChunkPromise(getchunkMessage.getChunkID());
             try {
                 f.get(timeout, TimeUnit.MILLISECONDS);
