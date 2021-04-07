@@ -2,10 +2,6 @@
 
 TIMEOUT=100
 VERSION=1.0
-PEER1_ID=1
-PEER1_ID=2
-SERVICE_ACCESS_POINT1=service1
-SERVICE_ACCESS_POINT2=service2
 MC_ADDR=230.0.0.1
 MC_PORT=8888
 MDB_ADDR=230.0.0.2
@@ -45,7 +41,7 @@ sleep 2
 rm source_Release
 timeout $TIMEOUT java TestApp service1 RESTORE source_Release
 sleep 2
-test "test3-01" "cat source_Release" "cat testfiles/source_Release"
+test "test-restore-1-01" "cat source_Release" "cat testfiles/source_Release"
 
 cp testfiles/Release .
 timeout $TIMEOUT java TestApp service1 BACKUP Release 1
@@ -53,7 +49,7 @@ sleep 3
 rm Release
 timeout $TIMEOUT java TestApp service1 RESTORE Release
 sleep 2
-test "test3-02" "cat Release" "cat testfiles/Release"
+test "test-restore-1-02" "cat Release" "cat testfiles/Release"
 
 cp testfiles/ChangeLog .
 timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
@@ -61,7 +57,7 @@ sleep 40
 rm ChangeLog
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
 sleep 20
-test "test3-03" "cat ChangeLog" "cat testfiles/ChangeLog"
+test "test-restore-1-03" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1
 kill $PID2
