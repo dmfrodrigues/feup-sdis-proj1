@@ -1,7 +1,5 @@
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FileTable implements Serializable {
@@ -79,6 +77,13 @@ public class FileTable implements Serializable {
 
     public Set<String> getFilenames(){
         return table.keySet();
+    }
+    public List<String> getFileIDs(){
+        List<String> fileIDs = new ArrayList<>();
+        for(Pair<String, Integer> pair: table.values()){
+            fileIDs.add(pair.first);
+        }
+        return fileIDs;
     }
 
     public void save(){

@@ -29,6 +29,9 @@ public class PutchunkMessage extends Message {
     @Override
     public void process(Peer peer) {
         String chunkId = getChunkID();
+
+        if(peer.getFileTable().getFileIDs().contains(getFileId())) // Checks if peer initiated this chunk
+            return;
         if(!peer.getStorageManager().saveChunk(chunkId, body))
             return;
 
