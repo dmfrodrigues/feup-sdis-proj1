@@ -39,8 +39,7 @@ public class RemovedMessage extends Message {
         if(peer.getFileTable().getActualRepDegree(getFileId() + "-" + chunkNo) < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)){
 
             // sleep random 0-400
-            Random rand = new Random();
-            int wait_time = rand.nextInt(400);
+            int wait_time = peer.getRandom().nextInt(400);
 
             try {
                 peer.inRemovedProcess = true;
