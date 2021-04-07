@@ -5,7 +5,9 @@ import java.net.InetSocketAddress;
 
 import static java.lang.Thread.sleep;
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Random;
 
 public class RemovedMessage extends Message {
@@ -27,7 +29,7 @@ public class RemovedMessage extends Message {
     }
 
     @Override
-    public void process(Peer peer) {
+    public synchronized void process(Peer peer) {
 
         System.out.println("Got Removed!");
 
@@ -38,24 +40,13 @@ public class RemovedMessage extends Message {
 
         if(peer.getFileTable().getActualRepDegree(getFileId() + "-" + chunkNo) < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)){
 
-            // sleep random 0-400
-            Random rand = new Random();
-            int wait_time = rand.nextInt(400);
-
-            try {
-                peer.inRemovedProcess = true;
-                sleep(wait_time);
-                peer.inRemovedProcess = false;
-            } catch (InterruptedException ignored) {}
-
-            // if receive PutChunk of this chunkID -> abort
-            for(String _fileID: peer.putChunkFileIDs)
-                if(_fileID.equals(getFileId())) {
-                    peer.putChunkFileIDs.clear();
-                    return;
-                }
-            peer.putChunkFileIDs.clear();
-
+            // checks if in a random interval a PutChunk message for this chunkID was received
+            Date date1 = new Date(); // This object contains the current date value
+            SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+            System.out.println(formatter.format(date1));
+            if(peer.getDataBroadcastSocketHandler().sense(this, 400)) return;
+            Date date2 = new Date();
+            System.out.println(formatter.format(date2));
             // Open chunk
 
             File file = new File(peer.getStorageManager().getPath() + "/" + getFileId() + "-" + chunkNo);
@@ -90,4 +81,13 @@ public class RemovedMessage extends Message {
             } catch (InterruptedException ignored) {}
         }
     }
+
+    public int getChunkNo() {
+        return chunkNo;
+    }
+
+    public String getChunkID() {
+        return getFileId() + "-" + getChunkNo();
+    }
+
 }

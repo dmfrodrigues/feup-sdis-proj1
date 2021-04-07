@@ -41,7 +41,7 @@ rm -rf $PEER1_ID $PEER2_ID $PEER3_ID $PEER4_ID $PEER5_ID
 curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release         # 77.3KB
 timeout $TIMEOUT java PeerDriver $VERSION $PEER1_ID $SERVICE_ACCESS_POINT1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID1=$!
 timeout $TIMEOUT java PeerDriver $VERSION $PEER2_ID $SERVICE_ACCESS_POINT2 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID2=$!
-timeout $TIMEOUT java PeerDriver $VERSION $PEER3_ID $SERVICE_ACCESS_POINT3 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID3=$!
+timeout $TIMEOUT java PeerDriver $VERSION $PEER3_ID $SERVICE_ACCESS_POINT3 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT  & PID3=$!
 timeout $TIMEOUT java PeerDriver $VERSION $PEER4_ID $SERVICE_ACCESS_POINT4 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID4=$!
 
 echo "Started peers with PIDs $PID1, $PID2, $PID3, $PID4"

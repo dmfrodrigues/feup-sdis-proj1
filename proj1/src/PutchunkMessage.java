@@ -37,7 +37,8 @@ public class PutchunkMessage extends Message {
 
         peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);
         peer.getFileTable().incrementActualRepDegree(chunkId);
-        peer.pushPutChunkFileIDs(getFileId());
+
+        peer.getDataBroadcastSocketHandler().register(getChunkID(), body);
 
         Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {

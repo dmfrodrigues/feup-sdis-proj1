@@ -235,13 +235,6 @@ public class Peer implements PeerInterface {
         return ret;
     }
 
-    boolean inRemovedProcess = false;
-    List<String> putChunkFileIDs = new ArrayList<String>();
-    public void pushPutChunkFileIDs(String fileID) {
-        if(inRemovedProcess)
-            putChunkFileIDs.add(fileID);
-    }
-
     public abstract class SocketHandler implements Runnable {
         private static final int BUFFER_LENGTH = 80000;
 
@@ -302,6 +295,11 @@ public class Peer implements PeerInterface {
     }
 
     public class DataBroadcastSocketHandler extends SocketHandler {
+
+        private final ExecutorService executor = Executors.newFixedThreadPool(4);
+
+        final Map<String, byte[]> map = new HashMap<>();
+
         public DataBroadcastSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
         }
@@ -314,6 +312,41 @@ public class Peer implements PeerInterface {
                 message.process(getPeer());
             }
         }
+
+        public void register(String id, byte[] data){
+            synchronized(map){
+                map.put(id, data);
+            }
+        }
+
+        private Future<byte[]> getPutChunkPromise(String chunkId){
+            return executor.submit(() -> {
+                byte[] ret;
+                do {
+                    synchronized (map) {
+                        ret = map.remove(chunkId);
+                    }
+                } while(ret == null);
+                return ret;
+            });
+        }
+        public boolean sense(RemovedMessage removedMessage, int millis) {
+            map.clear();
+            int timeout = ThreadLocalRandom.current().nextInt(0, millis);
+            Future<byte[]> f = getPutChunkPromise(removedMessage.getChunkID());
+            try {
+                f.get(timeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException e) {
+                System.err.println("Future failed, returning false");
+                e.printStackTrace();
+                return false;
+            } catch (TimeoutException e) {
+                return false;
+            }
+
+            return true;
+        }
+
     }
 
     public class DataRecoverySocketHandler extends SocketHandler {
