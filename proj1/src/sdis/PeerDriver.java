@@ -29,9 +29,9 @@ public class PeerDriver {
     private static String getUsage(){
         return
             "Usage:\n"+
-            "    java sdis.PeerDriver VERSION PEER_ID SERVICE_ACCESS_POINT MC MC_PORT MDB MDB_PORT MDR MDR_PORT\n"+
+            "    java PeerDriver VERSION PEER_ID SERVICE_ACCESS_POINT MC MC_PORT MDB MDB_PORT MDR MDR_PORT\n"+
             "    VERSION                 Protocol version, in format <n>.<m>; usually 1.0\n"+
-            "    PEER_ID                 sdis.Peer ID\n"+
+            "    PEER_ID                 Peer ID\n"+
             "    SERVICE_ACCESS_POINT    Service RMI access point\n"+
             "    MC                      Multicast control channel address\n"+
             "    MC_PORT                 Multicast control channel port\n"+

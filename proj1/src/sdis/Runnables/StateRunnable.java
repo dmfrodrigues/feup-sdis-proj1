@@ -60,9 +60,9 @@ public class StateRunnable implements Runnable{
     }
 
     private String getPeerStorageInfo(){
-        String info = "sdis.Storage Status\n";
+        String info = "Storage Status\n";
         info += "\tCapacity      : " + storageManager.getCapacity()/1000 + "\n";
-        info += "\tsdis.Storage in use: " + storageManager.getMemoryUsed()/1000 + "\n";
+        info += "\tStorage in use: " + storageManager.getMemoryUsed()/1000 + "\n";
         return info;
     }
 

@@ -28,7 +28,7 @@ public class ChunkStorageManager {
         File file = new File(path);
 
         if (file.mkdirs()) {
-            System.out.println("sdis.Storage created");
+            System.out.println("Storage created");
         } else {
             System.out.println("Failed to create storage");
         }
