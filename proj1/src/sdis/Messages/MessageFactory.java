@@ -22,7 +22,7 @@ public class MessageFactory {
         int senderId = Integer.parseInt(headerSplit[2]);
         String fileId = headerSplit[3];
 
-        // sdis.Messages without body
+        // Messages without body
         if (messageType.equals("DELETE")) {
             return new DeleteMessage(senderId, fileId, inetSocketAddress);
         }
