@@ -279,24 +279,20 @@ public class Peer implements PeerInterface {
     }
 
     public static class ControlSocketHandler extends SocketHandler {
+        /**
+         * Executor; is used to execute the promises.
+         *
+         * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
+         * being used.
+         */
+        private final ExecutorService executor = Executors.newFixedThreadPool(4);
+        /**
+         * @brief Map to store which peers stored which chunks.
+         */
+        private final Map<String, Set<Integer>> storedMessageMap = new HashMap<>();
+
         public ControlSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
-        }
-
-
-        private final Map<Pair<String, Integer>, Set<Integer>> storedMessageMap = new HashMap<>();
-        public void pushStoredMessage(StoredMessage storedMessage) {
-            Pair<String, Integer> key = new Pair<>(storedMessage.getFileId(), storedMessage.getChunkNo());
-            if(!storedMessageMap.containsKey(key))
-                storedMessageMap.put(key, new HashSet<>());
-            storedMessageMap.get(key).add(storedMessage.getSenderId());
-        }
-        public int popStoredMessages(PutchunkMessage putchunkMessage){
-            Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
-            Set<Integer> storedMessages = storedMessageMap.get(key);
-            int ret = (storedMessages != null ? storedMessages.size() : 0);
-            if(storedMessages != null) storedMessages.clear();
-            return ret;
         }
 
         @Override
@@ -304,6 +300,79 @@ public class Peer implements PeerInterface {
             if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof RemovedMessage  || message instanceof DeleteMessage) {
                 message.process(getPeer());
             }
+        }
+
+        /**
+         * @brief Register that a STORED message was received.
+         *
+         * @param storedMessage STORED message to be registered
+         */
+        public void register(StoredMessage storedMessage) {
+            String chunkId = storedMessage.getChunkID();
+            synchronized(storedMessageMap) {
+                if (storedMessageMap.containsKey(chunkId)){
+                    Set peersThatStored = storedMessageMap.get(chunkId);
+                    synchronized (peersThatStored) {
+                        peersThatStored.add(storedMessage.getSenderId());
+                        peersThatStored.notifyAll();
+                    }
+                }
+            }
+        }
+
+        /**
+         * @brief Get a future relative to how many STORED messages answering a given PUTCHUNK message were collected
+         * over a period of time specified in milliseconds.
+         *
+         * If the required number of STORED messages is met earlier than that time period, the future resolves immediately.
+         *
+         * @param m         PUTCHUNK message to check answers for
+         * @param millis    Maximum time to wait for the required number of STORED
+         * @return
+         */
+        public Future<Integer> checkStored(PutchunkMessage m, int millis){
+            String chunkId = m.getChunkID();
+            Set<Integer> peersThatStored = new HashSet<>();
+            synchronized(storedMessageMap){
+                storedMessageMap.put(chunkId, peersThatStored);
+            }
+            return executor.submit(() -> {
+                Future<Integer> f = resolveWhenReplicationDegreeIsMet(m, peersThatStored);
+                Integer ret;
+                try {
+                    ret = f.get(millis, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    synchronized (peersThatStored){
+                        ret = peersThatStored.size();
+                    }
+                }
+                synchronized (storedMessageMap){
+                    storedMessageMap.remove(chunkId);
+                }
+                return ret;
+            });
+        }
+
+        /**
+         * @brief Get a future that will only resolve when replication degree required for a chunk is met.
+         *
+         * The future is relative to how many peers have confirmed to be storing the chunk.
+         *
+         * @param m                 PUTCHUNK message to check answers for
+         * @param peersThatStored   Set of peers that will report to have STORED the chunk
+         * @return
+         */
+        private Future<Integer> resolveWhenReplicationDegreeIsMet(PutchunkMessage m, Set<Integer> peersThatStored){
+            return executor.submit(() -> {
+                synchronized(peersThatStored){
+                    while(peersThatStored.size() < m.getReplicationDegree()) {
+                        try {
+                            peersThatStored.wait();
+                        } catch (InterruptedException ignored) {}
+                    }
+                    return peersThatStored.size();
+                }
+            });
         }
     }
 
