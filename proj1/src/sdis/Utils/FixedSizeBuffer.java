@@ -1,3 +1,5 @@
+package sdis.Utils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -74,7 +76,7 @@ public class FixedSizeBuffer<T> {
     /**
      * Extract next element.
      *
-     * The next element has as its index the number returned by FixedSizeBuffer#getBegin().
+     * The next element has as its index the number returned by sdis.Utils.FixedSizeBuffer#getBegin().
      *
      * @return  The next element
      */

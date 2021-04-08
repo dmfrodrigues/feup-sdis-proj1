@@ -1,3 +1,8 @@
+package sdis.Runnables;
+
+import sdis.Messages.DeleteMessage;
+import sdis.Peer;
+
 import java.io.IOException;
 
 public class DeleteRunnable implements Runnable{

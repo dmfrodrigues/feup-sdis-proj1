@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Peer;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
@@ -24,7 +28,7 @@ public class GetchunkMessage extends MessageWithChunkNo {
 
     @Override
     public void process(Peer peer) {
-        System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
+        System.out.println("sdis.Peer " + getSenderId() + " requested chunk " + getChunkID());
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
         if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
         byte[] chunk;
@@ -39,7 +43,7 @@ public class GetchunkMessage extends MessageWithChunkNo {
         try {
             peer.send(message);
         } catch (IOException e) {
-            System.err.println("Failed to answer GetchunkMessage with a ChunkMessage");
+            System.err.println("Failed to answer sdis.Messages.GetchunkMessage with a sdis.Messages.ChunkMessage");
             e.printStackTrace();
         }
         System.out.println("Sent chunk " + message.getChunkID());

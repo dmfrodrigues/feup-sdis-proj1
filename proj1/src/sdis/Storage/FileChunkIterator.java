@@ -1,3 +1,8 @@
+package sdis.Storage;
+
+import sdis.Peer;
+import sdis.Utils.Utils;
+
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,7 +26,7 @@ public class FileChunkIterator implements Iterator<byte[]> {
     FileInputStream fileStream;
 
     /**
-     * @brief Construct FileChunkIterator.
+     * @brief Construct sdis.Storage.FileChunkIterator.
      *
      * @param file      File to parse
      */
@@ -29,7 +34,7 @@ public class FileChunkIterator implements Iterator<byte[]> {
         this(peer, file, 64000);
     }
     /**
-     * @brief Construct FileChunkIterator.
+     * @brief Construct sdis.Storage.FileChunkIterator.
      *
      * @param file      File to parse
      * @param chunkSize Chunk size, in bytes; defaults to 64kB = 64000B

@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Utils.Utils;
+
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -18,7 +22,7 @@ public class MessageFactory {
         int senderId = Integer.parseInt(headerSplit[2]);
         String fileId = headerSplit[3];
 
-        // Messages without body
+        // sdis.Messages without body
         if (messageType.equals("DELETE")) {
             return new DeleteMessage(version, senderId, fileId, inetSocketAddress);
         }

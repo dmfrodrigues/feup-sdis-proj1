@@ -15,7 +15,7 @@
 ## Compile
 
 ```sh
-javac src/*.java -d bin
+javac src/sdis/**/*.java -cp src -d bin
 ```
 
 ## Run

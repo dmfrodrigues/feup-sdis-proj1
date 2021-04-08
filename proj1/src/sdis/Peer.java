@@ -1,3 +1,12 @@
+package sdis;
+
+import sdis.Messages.*;
+import sdis.Runnables.*;
+import sdis.Storage.ChunkStorageManager;
+import sdis.Storage.FileChunkIterator;
+import sdis.Storage.FileTable;
+import sdis.Utils.Pair;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -355,7 +364,7 @@ public class Peer implements PeerInterface {
         /**
          * Map of already-received chunks;
          * chunks are stored in this map by DataRecoverySocketHandler#register(String, byte[]),
-         * and the futures returned by DataRecoverySocketHandler#request(GetchunkMessage) periodically check this map
+         * and the futures returned by DataRecoverySocketHandler#request(sdis.Messages.GetchunkMessage) periodically check this map
          * for the desired chunk.
          */
         final Map<String, byte[]> map = new HashMap<>();
@@ -374,7 +383,7 @@ public class Peer implements PeerInterface {
         /**
          * @brief Register incoming chunk.
          *
-         * Will complete the future obtained from DataRecoverySocketHandler#request(GetchunkMessage)
+         * Will complete the future obtained from DataRecoverySocketHandler#request(sdis.Messages.GetchunkMessage)
          * if such request was made.
          *
          * @param id    Chunk ID (file ID + chunk sequential number)
@@ -422,9 +431,9 @@ public class Peer implements PeerInterface {
         }
 
         /**
-         * @brief Senses data recovery channel for an answer to a GetchunkMessage.
+         * @brief Senses data recovery channel for an answer to a sdis.Messages.GetchunkMessage.
          *
-         * @param getchunkMessage   Message to check if there is an answer to
+         * @param getchunkMessage   sdis.Messages.Message to check if there is an answer to
          * @param millis            Milliseconds to wait for
          * @return                  True if channel was sensed busy with a message replying to getchunkMessage, false otherwise
          */

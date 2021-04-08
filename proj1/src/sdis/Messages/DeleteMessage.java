@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Peer;
+
 import java.net.InetSocketAddress;
 
 public class DeleteMessage extends Message{
@@ -17,7 +21,7 @@ public class DeleteMessage extends Message{
 
     @Override
     public void process(Peer peer) {
-        System.out.println("Peer " + getSenderId() + " requested file " + getFileId() + " to be deleted");
+        System.out.println("sdis.Peer " + getSenderId() + " requested file " + getFileId() + " to be deleted");
         peer.getStorageManager().deleteFile(this.getFileId());
     }
 }

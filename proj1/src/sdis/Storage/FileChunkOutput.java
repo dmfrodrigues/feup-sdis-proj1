@@ -1,3 +1,7 @@
+package sdis.Storage;
+
+import sdis.Utils.FixedSizeBuffer;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -8,7 +12,7 @@ import java.io.IOException;
  *
  * Is used to reconstruct a file.
  * Is in sync with a local filesystem file.
- * Buffers chunks saved using FileChunkOutput#set(int, byte[]), and writes them to the file whenever possible.
+ * Buffers chunks saved using sdis.Storage.FileChunkOutput#set(int, byte[]), and writes them to the file whenever possible.
  */
 public class FileChunkOutput {
     private final static int BUFFER_SIZE = 10;
@@ -17,7 +21,7 @@ public class FileChunkOutput {
     private final FixedSizeBuffer<byte[]> buffer;
 
     /**
-     * Create FileChunkOutput.
+     * Create sdis.Storage.FileChunkOutput.
      *
      * @param file  File to sync with/write to
      * @throws FileNotFoundException If file is not found (never thrown, as file needs not exist)

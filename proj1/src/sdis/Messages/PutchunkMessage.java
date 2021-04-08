@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Peer;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 

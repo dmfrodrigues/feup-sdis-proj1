@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Peer;
+
 import java.net.InetSocketAddress;
 
 public class ChunkMessage extends MessageWithChunkNo {

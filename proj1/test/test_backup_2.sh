@@ -44,9 +44,9 @@ timeout $TIMEOUT java PeerDriver $VERSION 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR
 timeout $TIMEOUT java PeerDriver $VERSION 2 service2 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID2=$!
 echo "Started peers with PIDs $PID1, $PID2"
 sleep 1
-timeout $TIMEOUT java TestApp service1 BACKUP source_Release 1
+timeout $TIMEOUT java sdis.TestApp service1 BACKUP source_Release 1
 sleep 2
-timeout $TIMEOUT java TestApp service1 BACKUP Release 1
+timeout $TIMEOUT java sdis.TestApp service1 BACKUP Release 1
 sleep 3
 
 test "test2-01-1" "timeout $TIMEOUT java TestApp service1 DELETE source_Release" "echo"

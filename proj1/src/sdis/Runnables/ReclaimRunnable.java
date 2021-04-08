@@ -1,3 +1,8 @@
+package sdis.Runnables;
+
+import sdis.Messages.RemovedMessage;
+import sdis.Peer;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;

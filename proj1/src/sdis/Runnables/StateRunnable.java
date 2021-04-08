@@ -1,3 +1,9 @@
+package sdis.Runnables;
+
+import sdis.Peer;
+import sdis.Storage.ChunkStorageManager;
+import sdis.Storage.FileTable;
+
 import java.io.File;
 import java.util.Objects;
 
@@ -54,9 +60,9 @@ public class StateRunnable implements Runnable{
     }
 
     private String getPeerStorageInfo(){
-        String info = "Storage Status\n";
+        String info = "sdis.Storage Status\n";
         info += "\tCapacity      : " + storageManager.getCapacity()/1000 + "\n";
-        info += "\tStorage in use: " + storageManager.getMemoryUsed()/1000 + "\n";
+        info += "\tsdis.Storage in use: " + storageManager.getMemoryUsed()/1000 + "\n";
         return info;
     }
 
