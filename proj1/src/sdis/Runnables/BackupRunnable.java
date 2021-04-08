@@ -1,3 +1,9 @@
+package sdis.Runnables;
+
+import sdis.Messages.PutchunkMessage;
+import sdis.Peer;
+import sdis.Storage.FileChunkIterator;
+
 import java.io.IOException;
 
 import static java.lang.Thread.sleep;
@@ -30,7 +36,7 @@ public class BackupRunnable implements Runnable {
 
         for(int i = 0; i < n; ++i){
             byte[] chunk = fileChunkIterator.next();
-            PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
+            PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
             peer.getFileTable().setChunkDesiredRepDegree(fileChunkIterator.getFileId() + "-" + i, replicationDegree);
 
@@ -45,7 +51,7 @@ public class BackupRunnable implements Runnable {
                 try {
                     sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
                 } catch (InterruptedException ignored) {}
-                numStored = peer.popStoredMessages(message);
+                numStored = peer.getControlSocketHandler().popStoredMessages(message);
                 System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
                 attempts++;
             } while(numStored < replicationDegree && attempts < ATTEMPTS);

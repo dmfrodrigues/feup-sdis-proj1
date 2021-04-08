@@ -1,3 +1,9 @@
+package sdis.Runnables;
+
+import sdis.Messages.GetchunkMessage;
+import sdis.Peer;
+import sdis.Storage.FileChunkOutput;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,9 +31,9 @@ public class RestoreRunnable implements Runnable {
     private final FileChunkOutput fileChunkOutput;
 
     /**
-     * @brief Construct RestoreRunnable.
+     * @brief Construct sdis.Runnables.RestoreRunnable.
      *
-     * @param peer      Peer asking to restore a file
+     * @param peer      sdis.Peer asking to restore a file
      * @param filename  File name of the file to be restored
      * @throws FileNotFoundException    If file is not found
      */
@@ -43,7 +49,7 @@ public class RestoreRunnable implements Runnable {
         String fileId = peer.getFileTable().getFileID(filename);
         Integer numberChunks = peer.getFileTable().getNumberChunks(filename);
         for(int i = 0; i < numberChunks; ++i){
-            GetchunkMessage message = new GetchunkMessage(peer.getVersion(), peer.getId(), fileId, i, peer.getControlAddress());
+            GetchunkMessage message = new GetchunkMessage(peer.getId(), fileId, i, peer.getControlAddress());
             byte[] chunk = null;
             for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
                 // Make request

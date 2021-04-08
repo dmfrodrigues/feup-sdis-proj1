@@ -1,3 +1,7 @@
+package sdis.Storage;
+
+import sdis.Utils.Pair;
+
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
