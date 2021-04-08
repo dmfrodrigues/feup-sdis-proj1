@@ -45,9 +45,9 @@ public class FileChunkIterator implements Iterator<byte[]> {
 
         if(length() > MAX_LENGTH) throw new FileTooLargeException(file);
 
-        fileId = createFileId();
         buffer = new byte[this.chunkSize];
         fileStream = new FileInputStream(this.file);
+        fileId = createFileId();
 
         peer.getFileTable().insert(file.getName(), fileId, length());
     }

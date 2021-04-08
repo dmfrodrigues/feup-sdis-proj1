@@ -169,7 +169,13 @@ public class Peer implements PeerInterface {
      * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
      */
     public void backup(String pathname, int replicationDegree) throws IOException {
-        FileChunkIterator fileChunkIterator = new FileChunkIterator(this, new File(pathname));
+        FileChunkIterator fileChunkIterator;
+        try {
+            fileChunkIterator = new FileChunkIterator(this, new File(pathname));
+        } catch (FileNotFoundException e) {
+            System.err.println("File " + pathname + " not found");
+            return;
+        }
         Runnable runnable = new BackupRunnable(this, fileChunkIterator, replicationDegree);
         Thread thread = new Thread(runnable);
         thread.start();
@@ -304,7 +310,7 @@ public class Peer implements PeerInterface {
 
         private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
-        final Map<String, byte[]> map = new HashMap<>();
+        final Map<String, ArrayList<Byte>> map = new HashMap<>();
 
         public DataBroadcastSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
@@ -317,21 +323,30 @@ public class Peer implements PeerInterface {
             }
         }
 
-        public void register(String id, byte[] data){
-            synchronized(map){
-                map.put(id, data);
+        public synchronized void register(String chunkId, byte[] data){
+            if (map.containsKey(chunkId)) {
+                ArrayList<Byte> dataList = map.get(chunkId);
+                synchronized(dataList) {
+                    dataList.clear();
+                    for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
+                    dataList.notifyAll();
+                }
             }
         }
 
-        private Future<byte[]> getPutChunkPromise(String chunkId){
+        private synchronized Future<byte[]> getPutChunkPromise(String chunkId){
+            ArrayList<Byte> retList = new ArrayList<>();
+            map.put(chunkId, retList);
             return executor.submit(() -> {
-                byte[] ret;
-                do {
-                    synchronized (map) {
-                        ret = map.remove(chunkId);
-                    }
-                } while(ret == null);
-                return ret;
+                synchronized (retList) {
+                    while(retList.size() == 0) retList.wait();
+                    byte[] ret;
+                    ret = new byte[retList.size()];
+                    for (int i = 0; i < retList.size(); ++i)
+                        ret[i] = retList.get(i);
+                    map.remove(chunkId);
+                    return ret;
+                }
             });
         }
         public boolean sense(RemovedMessage removedMessage, int millis) {
@@ -367,7 +382,7 @@ public class Peer implements PeerInterface {
          * and the futures returned by DataRecoverySocketHandler#request(sdis.Messages.GetchunkMessage) periodically check this map
          * for the desired chunk.
          */
-        final Map<String, byte[]> map = new HashMap<>();
+        final Map<String, ArrayList<Byte>> map = new HashMap<>();
 
         public DataRecoverySocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
@@ -386,12 +401,18 @@ public class Peer implements PeerInterface {
          * Will complete the future obtained from DataRecoverySocketHandler#request(sdis.Messages.GetchunkMessage)
          * if such request was made.
          *
-         * @param id    Chunk ID (file ID + chunk sequential number)
-         * @param data  Contents of that chunk
+         * @param chunkId   Chunk ID (file ID + chunk sequential number)
+         * @param data      Contents of that chunk
          */
-        public void register(String id, byte[] data){
-            synchronized(map){
-                map.put(id, data);
+        public synchronized void register(String chunkId, byte[] data){
+            if (map.containsKey(chunkId)) {
+                System.out.println("Registering chunk " + chunkId);
+                ArrayList<Byte> dataList = map.get(chunkId);
+                synchronized(dataList) {
+                    dataList.clear();
+                    for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
+                    dataList.notifyAll();
+                }
             }
         }
 
@@ -418,15 +439,19 @@ public class Peer implements PeerInterface {
          * @param chunkId   ID of the chunk
          * @return          Future of the chunk
          */
-        private Future<byte[]> getChunkPromise(String chunkId){
+        private synchronized Future<byte[]> getChunkPromise(String chunkId){
+            ArrayList<Byte> retList = new ArrayList<>();
+            map.put(chunkId, retList);
             return executor.submit(() -> {
-                byte[] ret;
-                do {
-                    synchronized (map) {
-                        ret = map.remove(chunkId);
-                    }
-                } while(ret == null);
-                return ret;
+                synchronized (retList) {
+                    while(retList.size() == 0) retList.wait();
+                    byte[] ret;
+                    ret = new byte[retList.size()];
+                    for (int i = 0; i < retList.size(); ++i)
+                        ret[i] = retList.get(i);
+                    map.remove(chunkId);
+                    return ret;
+                }
             });
         }
 

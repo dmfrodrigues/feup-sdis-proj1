@@ -104,10 +104,10 @@ public class ChunkStorageManager {
 
     public void deleteFile(String fileID){
         File storage = new File(path);
-        File[] chunks = storage.listFiles((dir, name) -> name.startsWith(fileID));
+        File[] chunks = Objects.requireNonNull(storage.listFiles((dir, name) -> name.startsWith(fileID)));
 
-        for(int i = 0; i < Objects.requireNonNull(chunks).length; i++){
-            chunks[i].delete();
+        for (File chunk : chunks) {
+            chunk.delete();
         }
     }
 
