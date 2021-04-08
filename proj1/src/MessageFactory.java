@@ -21,6 +21,9 @@ public class MessageFactory {
         // Messages without body
         if (messageType.equals("DELETE")) {
             return new DeleteMessage(version, senderId, fileId, inetSocketAddress);
+        }else if (messageType.equals("DELETED")){
+            int initiatorID = Integer.parseInt(headerSplit[4]);
+            return new DeletedMessage(version, senderId, fileId, initiatorID, inetSocketAddress);
         }
 
         int chunkNo = Integer.parseInt(headerSplit[4]);

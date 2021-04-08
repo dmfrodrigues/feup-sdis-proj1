@@ -11,6 +11,16 @@ public class FileTable implements Serializable {
     public static Map<String, Integer> chunkDesiredRepDegree = new ConcurrentHashMap<>();
     public static Map<String, Integer> fileDesiredRepDegree = new ConcurrentHashMap<>();
 
+    /**
+     * Map of files and the peers that have stored it.
+     */
+    public static Map<String, HashSet<Integer>> fileStoredByPeers = new ConcurrentHashMap<>();
+
+    /**
+     * Pending files to be deleted. Files which not all peers have successfully deleted.
+     */
+    public static Set<String> pendingDelete = new HashSet<>();
+
     public FileTable(String path) {
         table_path = path + "/fileID.ser";
     }
@@ -86,6 +96,32 @@ public class FileTable implements Serializable {
         return fileIDs;
     }
 
+    public void addPeerToFileStored(String fileID, int peerID){
+        HashSet<Integer> set = fileStoredByPeers.getOrDefault(fileID, new HashSet<>());
+        set.add(peerID);
+        fileStoredByPeers.put(fileID, set);
+    }
+
+    public void removePeerFromFileStored(String fileID, int peerID){
+        fileStoredByPeers.get(fileID).remove(peerID);
+    }
+
+    public Set<Integer> getFileStoredByPeers(String fileID){
+        return fileStoredByPeers.get(fileID);
+    }
+
+    public void addPendingDelete(String path){
+        pendingDelete.add(path);
+    }
+
+    public void removePendingDelete(String path){
+        pendingDelete.remove(path);
+    }
+
+    public Set<String> getPendingDelete(){
+        return pendingDelete;
+    }
+
     public void save(){
         try {
             FileOutputStream o =
@@ -95,6 +131,8 @@ public class FileTable implements Serializable {
             os.writeObject(actualRepDegree);
             os.writeObject(chunkDesiredRepDegree);
             os.writeObject(fileDesiredRepDegree);
+            os.writeObject(fileStoredByPeers);
+            os.writeObject(pendingDelete);
             os.close();
             o.close();
         } catch (IOException e) {
@@ -110,9 +148,11 @@ public class FileTable implements Serializable {
             FileInputStream i = new FileInputStream(table_path);
             ObjectInputStream is = new ObjectInputStream(i);
             table = (Map<String, Pair<String, Integer>>) is.readObject();
-            actualRepDegree= (Map<String, Integer>) is.readObject();
-            chunkDesiredRepDegree= (Map<String, Integer>) is.readObject();
-            fileDesiredRepDegree= (Map<String, Integer>) is.readObject();
+            actualRepDegree = (Map<String, Integer>) is.readObject();
+            chunkDesiredRepDegree = (Map<String, Integer>) is.readObject();
+            fileDesiredRepDegree = (Map<String, Integer>) is.readObject();
+            fileStoredByPeers = (Map<String, HashSet<Integer>>) is.readObject();
+            pendingDelete = (Set<String>) is.readObject();
             i.close();
             is.close();
         } catch (IOException | ClassNotFoundException ignored) {}

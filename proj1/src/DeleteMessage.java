@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.net.InetSocketAddress;
 
 public class DeleteMessage extends Message{
@@ -19,5 +20,16 @@ public class DeleteMessage extends Message{
     public void process(Peer peer) {
         System.out.println("Peer " + getSenderId() + " requested file " + getFileId() + " to be deleted");
         peer.getStorageManager().deleteFile(this.getFileId());
+
+        // TODO change this Enhancement
+        if(peer.getVersion().equals("1.0")){
+            DeletedMessage message = new DeletedMessage(peer.getVersion(), peer.getId(),
+                    getFileId(), getSenderId(), peer.getControlAddress());
+            try {
+                peer.send(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

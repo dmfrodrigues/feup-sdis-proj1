@@ -1,0 +1,34 @@
+import java.net.InetSocketAddress;
+
+/**
+ * <Version> DELETED  <SenderId> <FileId> <InitiatorId> <CRLF><CRLF>
+ */
+
+public class DeletedMessage extends Message{
+
+    private final int initiatorId;
+
+    public DeletedMessage(String version, int senderId, String fileId, int initiatorId, InetSocketAddress inetSocketAddress) {
+        super(version, "DELETED", senderId, fileId, inetSocketAddress);
+        this.initiatorId = initiatorId;
+    }
+
+    public byte[] getBytes(){
+        byte[] header = super.getBytes();
+        byte[] initiatorID_bytes = (" " + initiatorId + "\r\n\r\n").getBytes();
+        byte[] ret = new byte[header.length + initiatorID_bytes.length];
+        System.arraycopy(header       , 0, ret, 0, header.length);
+        System.arraycopy(initiatorID_bytes, 0, ret, header.length, initiatorID_bytes.length);
+        return ret;
+    }
+
+    @Override
+    public void process(Peer peer) {
+        if(peer.getId() != initiatorId) return;
+        System.out.println("Peer " + getSenderId() + " deleted " + getFileId());
+
+        // update peer stored map
+        peer.getFileTable().removePeerFromFileStored(getFileId(), getSenderId());
+
+    }
+}

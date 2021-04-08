@@ -225,6 +225,11 @@ public class Peer implements PeerInterface {
     public void send(Message message) throws IOException {
         DatagramPacket packet = message.getPacket();
         sendSocket.send(packet);
+
+        // Starts the delete process for pending files
+        for(String path: this.getFileTable().getPendingDelete()){
+            delete(path);
+        }
     }
 
     private final Map<Pair<String, Integer>, Set<Integer>> storedMessageMap = new HashMap<>();
@@ -233,6 +238,9 @@ public class Peer implements PeerInterface {
         if(!storedMessageMap.containsKey(key))
             storedMessageMap.put(key, new HashSet<>());
         storedMessageMap.get(key).add(storedMessage.getSenderId());
+
+        // Saves
+        this.getFileTable().addPeerToFileStored(storedMessage.getFileId(), storedMessage.getSenderId());
     }
     public int popStoredMessages(PutchunkMessage putchunkMessage){
         Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
@@ -291,7 +299,9 @@ public class Peer implements PeerInterface {
 
         @Override
         protected void handle(Message message) {
-            if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof RemovedMessage  || message instanceof DeleteMessage) {
+            if (message instanceof StoredMessage || message instanceof GetchunkMessage ||
+                message instanceof RemovedMessage  || message instanceof DeleteMessage ||
+                message instanceof DeletedMessage) {
                 message.process(getPeer());
             }
         }

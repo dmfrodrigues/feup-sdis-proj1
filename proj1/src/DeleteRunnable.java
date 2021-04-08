@@ -1,5 +1,7 @@
 import java.io.IOException;
 
+import static java.lang.Thread.sleep;
+
 public class DeleteRunnable implements Runnable{
 
     private final Peer peer;
@@ -27,6 +29,22 @@ public class DeleteRunnable implements Runnable{
             peer.send(message);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        //TODO change this Enhancement
+        if(peer.getVersion().equals("1.0")){
+            // wait for DELETED messages
+            try {
+                sleep(1000);
+            } catch (InterruptedException ignored) {}
+
+            if(peer.getFileTable().getFileStoredByPeers(peer.getFileTable().getFileID(pathname)).size() > 0){
+                peer.getFileTable().addPendingDelete(pathname);
+            }
+            else{
+                peer.getFileTable().removePendingDelete(pathname);
+            }
+
         }
     }
 }
