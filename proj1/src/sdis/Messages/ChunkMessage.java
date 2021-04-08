@@ -4,29 +4,23 @@ import sdis.Peer;
 
 import java.net.InetSocketAddress;
 
-public class ChunkMessage extends MessageWithChunkNo {
-    private final byte[] body;
-
+public class ChunkMessage extends MessageWithBody {
     public ChunkMessage(String version, int senderId, String fileId, int chunkNo, byte[] body, InetSocketAddress inetSocketAddress){
-        super(version, "CHUNK", senderId, fileId, chunkNo, inetSocketAddress);
-
-        if(body == null) throw new NullPointerException("body");
-
-        this.body = body;
+        super(version, "CHUNK", senderId, fileId, chunkNo, body, inetSocketAddress);
     }
 
     public byte[] getBytes(){
         byte[] header = super.getBytes();
         byte[] term = ("\r\n\r\n").getBytes();
-        byte[] ret = new byte[header.length + term.length + body.length];
+        byte[] ret = new byte[header.length + term.length + getBody().length];
         System.arraycopy(header       , 0, ret, 0, header.length);
         System.arraycopy(term         , 0, ret, header.length, term.length);
-        System.arraycopy(body         , 0, ret, header.length + term.length, body.length);
+        System.arraycopy(getBody()    , 0, ret, header.length + term.length, getBody().length);
         return ret;
     }
 
     @Override
     public void process(Peer peer) {
-        peer.getDataRecoverySocketHandler().register(getChunkID(), body);
+        peer.getDataRecoverySocketHandler().register(getChunkID(), getBody());
     }
 }
