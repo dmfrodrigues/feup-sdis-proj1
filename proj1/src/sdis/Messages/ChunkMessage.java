@@ -5,8 +5,8 @@ import sdis.Peer;
 import java.net.InetSocketAddress;
 
 public class ChunkMessage extends MessageWithBody {
-    public ChunkMessage(String version, int senderId, String fileId, int chunkNo, byte[] body, InetSocketAddress inetSocketAddress){
-        super(version, "CHUNK", senderId, fileId, chunkNo, body, inetSocketAddress);
+    public ChunkMessage(int senderId, String fileId, int chunkNo, byte[] body, InetSocketAddress inetSocketAddress){
+        super("1.0", "CHUNK", senderId, fileId, chunkNo, body, inetSocketAddress);
     }
 
     public byte[] getBytes(){

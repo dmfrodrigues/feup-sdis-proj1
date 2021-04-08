@@ -9,8 +9,8 @@ public class PutchunkMessage extends MessageWithBody {
 
     private final int replicationDeg;
 
-    public PutchunkMessage(String version, int senderId, String fileId, int chunkNo, int replicationDeg, byte[] body, InetSocketAddress inetSocketAddress){
-        super(version, "PUTCHUNK", senderId, fileId, chunkNo, body, inetSocketAddress);
+    public PutchunkMessage(int senderId, String fileId, int chunkNo, int replicationDeg, byte[] body, InetSocketAddress inetSocketAddress){
+        super("1.0", "PUTCHUNK", senderId, fileId, chunkNo, body, inetSocketAddress);
 
         this.replicationDeg = replicationDeg;
     }
@@ -48,7 +48,7 @@ public class PutchunkMessage extends MessageWithBody {
             e.printStackTrace();
         }
 
-        Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
+        Message response = new StoredMessage(peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {
             peer.send(response);
         } catch (IOException e) {

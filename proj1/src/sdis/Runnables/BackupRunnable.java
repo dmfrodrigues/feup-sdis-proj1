@@ -36,7 +36,7 @@ public class BackupRunnable implements Runnable {
 
         for(int i = 0; i < n; ++i){
             byte[] chunk = fileChunkIterator.next();
-            PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
+            PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
             peer.getFileTable().setChunkDesiredRepDegree(fileChunkIterator.getFileId() + "-" + i, replicationDegree);
 

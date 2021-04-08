@@ -11,8 +11,8 @@ public class GetchunkMessage extends MessageWithChunkNo {
      */
     private static final int RESPONSE_TIMEOUT_MILLIS = 400;
 
-    public GetchunkMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
-        super(version, "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
+    public GetchunkMessage(int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
+        super("1.0", "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
     }
 
     public byte[] getBytes(){
@@ -37,7 +37,7 @@ public class GetchunkMessage extends MessageWithChunkNo {
             e.printStackTrace();
             return;
         }
-        ChunkMessage message = new ChunkMessage(getVersion(), peer.getId(), getFileId(), getChunkNo(), chunk, peer.getDataRecoveryAddress());
+        ChunkMessage message = new ChunkMessage(peer.getId(), getFileId(), getChunkNo(), chunk, peer.getDataRecoveryAddress());
         try {
             peer.send(message);
         } catch (IOException e) {

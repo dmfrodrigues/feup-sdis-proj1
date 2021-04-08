@@ -6,8 +6,8 @@ import java.net.InetSocketAddress;
 
 public class DeleteMessage extends Message{
 
-    public DeleteMessage(String version, int senderId, String fileId, InetSocketAddress inetSocketAddress) {
-        super(version, "DELETE", senderId, fileId, inetSocketAddress);
+    public DeleteMessage(int senderId, String fileId, InetSocketAddress inetSocketAddress) {
+        super("1.0", "DELETE", senderId, fileId, inetSocketAddress);
     }
 
     public byte[] getBytes(){

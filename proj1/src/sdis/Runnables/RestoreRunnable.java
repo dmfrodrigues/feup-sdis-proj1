@@ -49,7 +49,7 @@ public class RestoreRunnable implements Runnable {
         String fileId = peer.getFileTable().getFileID(filename);
         Integer numberChunks = peer.getFileTable().getNumberChunks(filename);
         for(int i = 0; i < numberChunks; ++i){
-            GetchunkMessage message = new GetchunkMessage(peer.getVersion(), peer.getId(), fileId, i, peer.getControlAddress());
+            GetchunkMessage message = new GetchunkMessage(peer.getId(), fileId, i, peer.getControlAddress());
             byte[] chunk = null;
             for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
                 // Make request

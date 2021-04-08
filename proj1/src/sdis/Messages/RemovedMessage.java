@@ -15,8 +15,8 @@ public class RemovedMessage extends MessageWithChunkNo {
     private static final int WAIT_MILLIS = 1000;
     private static final int ATTEMPTS = 5;
 
-    public RemovedMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
-        super(version, "REMOVED", senderId, fileId, chunkNo, inetSocketAddress);
+    public RemovedMessage(int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
+        super("1.0", "REMOVED", senderId, fileId, chunkNo, inetSocketAddress);
     }
 
     public byte[] getBytes(){
@@ -60,7 +60,7 @@ public class RemovedMessage extends MessageWithChunkNo {
                 e.printStackTrace();
             }
 
-            PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(),
+            PutchunkMessage message = new PutchunkMessage(peer.getId(),
                     getFileId(), getChunkNo(),
                     peer.getFileTable().getChunkDesiredRepDegree(getFileId()), chunk, peer.getDataBroadcastAddress()
             );
