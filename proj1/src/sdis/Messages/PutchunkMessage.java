@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 public class PutchunkMessage extends MessageWithChunkNo {
-    private final int chunkNo;
+
     private final int replicationDeg;
     private final byte[] body;
 
@@ -15,7 +15,6 @@ public class PutchunkMessage extends MessageWithChunkNo {
 
         if(body == null) throw new NullPointerException("body");
 
-        this.chunkNo = chunkNo;
         this.replicationDeg = replicationDeg;
         this.body = body;
     }

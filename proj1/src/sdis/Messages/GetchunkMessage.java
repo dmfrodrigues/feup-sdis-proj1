@@ -10,11 +10,9 @@ public class GetchunkMessage extends MessageWithChunkNo {
      * How much a peer receiving this message should wait (and sense MDR) before answering
      */
     private static final int RESPONSE_TIMEOUT_MILLIS = 400;
-    private final int chunkNo;
 
     public GetchunkMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
         super(version, "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
-        this.chunkNo = chunkNo;
     }
 
     public byte[] getBytes(){
