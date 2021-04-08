@@ -391,6 +391,7 @@ public class Peer implements PeerInterface {
          */
         public synchronized void register(String chunkId, byte[] data){
             if (map.containsKey(chunkId)) {
+                System.out.println("Registering chunk " + chunkId);
                 ArrayList<Byte> dataList = map.get(chunkId);
                 synchronized(dataList) {
                     dataList.clear();
