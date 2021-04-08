@@ -1,11 +1,11 @@
 import java.net.InetSocketAddress;
 
-public class ChunkMessage extends Message {
+public class ChunkMessage extends MessageWithChunkNo {
     private final int chunkNo;
     private final byte[] body;
 
     public ChunkMessage(String version, int senderId, String fileId, int chunkNo, byte[] body, InetSocketAddress inetSocketAddress){
-        super(version, "CHUNK", senderId, fileId, inetSocketAddress);
+        super(version, "CHUNK", senderId, fileId, chunkNo, inetSocketAddress);
 
         if(body == null) throw new NullPointerException("body");
 
@@ -27,13 +27,5 @@ public class ChunkMessage extends Message {
     public void process(Peer peer) {
         System.out.println("Received chunk " + getChunkID() + " upon request");
         peer.getDataRecoverySocketHandler().register(getChunkID(), body);
-    }
-
-    public int getChunkNo() {
-        return chunkNo;
-    }
-
-    public String getChunkID() {
-        return getFileId() + "-" + getChunkNo();
     }
 }

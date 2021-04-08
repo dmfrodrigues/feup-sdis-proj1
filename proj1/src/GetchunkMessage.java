@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-public class GetchunkMessage extends Message {
+public class GetchunkMessage extends MessageWithChunkNo {
     /**
      * How much a peer receiving this message should wait (and sense MDR) before answering
      */
@@ -9,7 +9,7 @@ public class GetchunkMessage extends Message {
     private final int chunkNo;
 
     public GetchunkMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
-        super(version, "GETCHUNK", senderId, fileId, inetSocketAddress);
+        super(version, "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
         this.chunkNo = chunkNo;
     }
 
@@ -43,13 +43,5 @@ public class GetchunkMessage extends Message {
             e.printStackTrace();
         }
         System.out.println("Sent chunk " + message.getChunkID());
-    }
-
-    public int getChunkNo() {
-        return chunkNo;
-    }
-
-    public String getChunkID() {
-        return getFileId() + "-" + getChunkNo();
     }
 }

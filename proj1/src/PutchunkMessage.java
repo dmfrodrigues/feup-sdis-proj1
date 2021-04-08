@@ -1,13 +1,13 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-public class PutchunkMessage extends Message {
+public class PutchunkMessage extends MessageWithChunkNo {
     private final int chunkNo;
     private final int replicationDeg;
     private final byte[] body;
 
     public PutchunkMessage(String version, int senderId, String fileId, int chunkNo, int replicationDeg, byte[] body, InetSocketAddress inetSocketAddress){
-        super(version, "PUTCHUNK", senderId, fileId, inetSocketAddress);
+        super(version, "PUTCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
 
         if(body == null) throw new NullPointerException("body");
 
@@ -55,13 +55,5 @@ public class PutchunkMessage extends Message {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public int getChunkNo() {
-        return chunkNo;
-    }
-
-    public String getChunkID() {
-        return getFileId() + "-" + getChunkNo();
     }
 }

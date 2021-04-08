@@ -7,13 +7,13 @@ import static java.lang.Thread.sleep;
 import java.io.File;
 import java.util.Arrays;
 
-public class RemovedMessage extends Message {
+public class RemovedMessage extends MessageWithChunkNo {
     private final int chunkNo;
     private static final int WAIT_MILLIS = 1000;
     private static final int ATTEMPTS = 5;
 
     public RemovedMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
-        super(version, "REMOVED", senderId, fileId, inetSocketAddress);
+        super(version, "REMOVED", senderId, fileId, chunkNo, inetSocketAddress);
         this.chunkNo = chunkNo;
     }
 
@@ -80,13 +80,5 @@ public class RemovedMessage extends Message {
             }while( numStored < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)
                     && attempts < ATTEMPTS);
         }
-    }
-
-    public int getChunkNo() {
-        return chunkNo;
-    }
-
-    public String getChunkID() {
-        return getFileId() + "-" + getChunkNo();
     }
 }

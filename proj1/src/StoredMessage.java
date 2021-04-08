@@ -1,10 +1,10 @@
 import java.net.InetSocketAddress;
 
-public class StoredMessage extends Message {
+public class StoredMessage extends MessageWithChunkNo {
     private final int chunkNo;
 
     public StoredMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
-        super(version, "STORED", senderId, fileId, inetSocketAddress);
+        super(version, "STORED", senderId, fileId, chunkNo, inetSocketAddress);
         this.chunkNo = chunkNo;
     }
 
@@ -21,9 +21,5 @@ public class StoredMessage extends Message {
     public void process(Peer peer) {
         peer.pushStoredMessage(this);
         peer.getFileTable().incrementActualRepDegree(getFileId() + "-" + chunkNo);
-    }
-
-    public int getChunkNo() {
-        return chunkNo;
     }
 }
