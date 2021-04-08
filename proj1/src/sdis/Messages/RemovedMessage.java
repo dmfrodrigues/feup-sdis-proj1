@@ -76,7 +76,7 @@ public class RemovedMessage extends MessageWithChunkNo {
                     sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
                 } catch (InterruptedException ignored) {
                 }
-                numStored = peer.popStoredMessages(message);
+                numStored = peer.getControlSocketHandler().popStoredMessages(message);
                 System.out.println("    Got " + numStored + " stored messages");
                 attempts++;
             }while( numStored < peer.getFileTable().getChunkDesiredRepDegree(getChunkID())

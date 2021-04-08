@@ -236,21 +236,6 @@ public class Peer implements PeerInterface {
         sendSocket.send(packet);
     }
 
-    private final Map<Pair<String, Integer>, Set<Integer>> storedMessageMap = new HashMap<>();
-    public void pushStoredMessage(StoredMessage storedMessage) {
-        Pair<String, Integer> key = new Pair<>(storedMessage.getFileId(), storedMessage.getChunkNo());
-        if(!storedMessageMap.containsKey(key))
-            storedMessageMap.put(key, new HashSet<>());
-        storedMessageMap.get(key).add(storedMessage.getSenderId());
-    }
-    public int popStoredMessages(PutchunkMessage putchunkMessage){
-        Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
-        Set<Integer> storedMessages = storedMessageMap.get(key);
-        int ret = (storedMessages != null ? storedMessages.size() : 0);
-        if(storedMessages != null) storedMessages.clear();
-        return ret;
-    }
-
     public abstract static class SocketHandler implements Runnable {
         private static final int BUFFER_LENGTH = 80000;
 
@@ -296,6 +281,22 @@ public class Peer implements PeerInterface {
     public static class ControlSocketHandler extends SocketHandler {
         public ControlSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
+        }
+
+
+        private final Map<Pair<String, Integer>, Set<Integer>> storedMessageMap = new HashMap<>();
+        public void pushStoredMessage(StoredMessage storedMessage) {
+            Pair<String, Integer> key = new Pair<>(storedMessage.getFileId(), storedMessage.getChunkNo());
+            if(!storedMessageMap.containsKey(key))
+                storedMessageMap.put(key, new HashSet<>());
+            storedMessageMap.get(key).add(storedMessage.getSenderId());
+        }
+        public int popStoredMessages(PutchunkMessage putchunkMessage){
+            Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
+            Set<Integer> storedMessages = storedMessageMap.get(key);
+            int ret = (storedMessages != null ? storedMessages.size() : 0);
+            if(storedMessages != null) storedMessages.clear();
+            return ret;
         }
 
         @Override

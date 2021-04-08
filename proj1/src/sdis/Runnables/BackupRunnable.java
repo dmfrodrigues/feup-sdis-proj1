@@ -51,7 +51,7 @@ public class BackupRunnable implements Runnable {
                 try {
                     sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
                 } catch (InterruptedException ignored) {}
-                numStored = peer.popStoredMessages(message);
+                numStored = peer.getControlSocketHandler().popStoredMessages(message);
                 System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
                 attempts++;
             } while(numStored < replicationDegree && attempts < ATTEMPTS);
