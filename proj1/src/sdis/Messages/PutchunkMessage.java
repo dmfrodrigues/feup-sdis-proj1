@@ -22,11 +22,11 @@ public class PutchunkMessage extends MessageWithChunkNo {
 
     public byte[] getBytes(){
         byte[] header = super.getBytes();
-        byte[] chunkNo_replicationDeg_bytes = (" " + chunkNo + " " + replicationDeg + "\r\n\r\n").getBytes();
-        byte[] ret = new byte[header.length + chunkNo_replicationDeg_bytes.length + body.length];
+        byte[] replicationDeg_bytes = (" " + replicationDeg + "\r\n\r\n").getBytes();
+        byte[] ret = new byte[header.length + replicationDeg_bytes.length + body.length];
         System.arraycopy(header                      , 0, ret, 0, header.length);
-        System.arraycopy(chunkNo_replicationDeg_bytes, 0, ret, header.length, chunkNo_replicationDeg_bytes.length);
-        System.arraycopy(body                        , 0, ret, header.length + chunkNo_replicationDeg_bytes.length, body.length);
+        System.arraycopy(replicationDeg_bytes        , 0, ret, header.length, replicationDeg_bytes.length);
+        System.arraycopy(body                        , 0, ret, header.length + replicationDeg_bytes.length, body.length);
         return ret;
     }
 

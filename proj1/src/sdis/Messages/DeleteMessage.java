@@ -12,10 +12,10 @@ public class DeleteMessage extends Message{
 
     public byte[] getBytes(){
         byte[] header = super.getBytes();
-        byte[] term = (" " + "\r\n\r\n").getBytes();
+        byte[] term = ("\r\n\r\n").getBytes();
         byte[] ret = new byte[header.length + term.length];
         System.arraycopy(header       , 0, ret, 0, header.length);
-        System.arraycopy(term, 0, ret, header.length, term.length);
+        System.arraycopy(term         , 0, ret, header.length, term.length);
         return ret;
     }
 
