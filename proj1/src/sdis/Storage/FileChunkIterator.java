@@ -1,3 +1,8 @@
+package sdis.Storage;
+
+import sdis.Peer;
+import sdis.Utils.Utils;
+
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

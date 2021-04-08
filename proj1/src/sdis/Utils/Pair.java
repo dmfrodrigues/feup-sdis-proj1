@@ -1,3 +1,5 @@
+package sdis.Utils;
+
 import java.io.Serializable;
 import java.util.Objects;
 

@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Utils.Utils;
+
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -19,18 +23,17 @@ public class MessageFactory {
         String fileId = headerSplit[3];
 
         // Messages without body
-        if (messageType.equals("DELETE")) {
-            return new DeleteMessage(version, senderId, fileId, inetSocketAddress);
-        }else if (messageType.equals("DELETED")){
-            int initiatorID = Integer.parseInt(headerSplit[4]);
-            return new DeletedMessage(version, senderId, fileId, initiatorID, inetSocketAddress);
+        switch(messageType) {
+            case "DELETE": return new DeleteMessage(senderId, fileId, inetSocketAddress);
+            case "DELETED": return new DeletedMessage(senderId, fileId, Integer.parseInt(headerSplit[4]), inetSocketAddress);
+            default: break;
         }
 
         int chunkNo = Integer.parseInt(headerSplit[4]);
         switch (messageType) {
-            case "STORED": return new StoredMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
-            case "GETCHUNK": return new GetchunkMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
-            case "REMOVED": return new RemovedMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
+            case "STORED": return new StoredMessage(senderId, fileId, chunkNo, inetSocketAddress);
+            case "GETCHUNK": return new GetchunkMessage(senderId, fileId, chunkNo, inetSocketAddress);
+            case "REMOVED": return new RemovedMessage(senderId, fileId, chunkNo, inetSocketAddress);
             default: break;
         }
 
@@ -38,12 +41,12 @@ public class MessageFactory {
         int bodyOffset = Utils.find_nth(data, new byte[]{'\r', '\n'}, 2)+2;
         byte[] body = Arrays.copyOfRange(data, bodyOffset, data.length);
         if (messageType.equals("CHUNK")) {
-            return new ChunkMessage(version, senderId, fileId, chunkNo, body, inetSocketAddress);
+            return new ChunkMessage(senderId, fileId, chunkNo, body, inetSocketAddress);
         }
 
         int replicationDeg = Integer.parseInt(headerSplit[5]);
         if (messageType.equals("PUTCHUNK")) {
-            return new PutchunkMessage(version, senderId, fileId, chunkNo, replicationDeg, body, inetSocketAddress);
+            return new PutchunkMessage(senderId, fileId, chunkNo, replicationDeg, body, inetSocketAddress);
         }
 
         throw new ClassNotFoundException(messageType);

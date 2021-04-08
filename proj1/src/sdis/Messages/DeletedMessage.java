@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Peer;
+
 import java.net.InetSocketAddress;
 
 /**
@@ -8,8 +12,8 @@ public class DeletedMessage extends Message{
 
     private final int initiatorId;
 
-    public DeletedMessage(String version, int senderId, String fileId, int initiatorId, InetSocketAddress inetSocketAddress) {
-        super(version, "DELETED", senderId, fileId, inetSocketAddress);
+    public DeletedMessage(int senderId, String fileId, int initiatorId, InetSocketAddress inetSocketAddress) {
+        super("1.1", "DELETED", senderId, fileId, inetSocketAddress);
         this.initiatorId = initiatorId;
     }
 

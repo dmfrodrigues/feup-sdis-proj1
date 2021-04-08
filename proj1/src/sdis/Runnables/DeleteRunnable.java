@@ -1,3 +1,8 @@
+package sdis.Runnables;
+
+import sdis.Messages.DeleteMessage;
+import sdis.Peer;
+
 import java.io.IOException;
 
 import static java.lang.Thread.sleep;
@@ -20,7 +25,7 @@ public class DeleteRunnable implements Runnable{
             return;
         }
 
-        DeleteMessage message = new DeleteMessage(peer.getVersion(), peer.getId(),
+        DeleteMessage message = new DeleteMessage(peer.getId(),
                 peer.getFileTable().getFileID(pathname), peer.getControlAddress());
 
         peer.getStorageManager().deleteFile(peer.getFileTable().getFileID(pathname));

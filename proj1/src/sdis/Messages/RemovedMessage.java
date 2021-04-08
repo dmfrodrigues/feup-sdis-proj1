@@ -1,3 +1,7 @@
+package sdis.Messages;
+
+import sdis.Peer;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -7,22 +11,20 @@ import static java.lang.Thread.sleep;
 import java.io.File;
 import java.util.Arrays;
 
-public class RemovedMessage extends Message {
-    private final int chunkNo;
+public class RemovedMessage extends MessageWithChunkNo {
     private static final int WAIT_MILLIS = 1000;
     private static final int ATTEMPTS = 5;
 
-    public RemovedMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
-        super(version, "REMOVED", senderId, fileId, inetSocketAddress);
-        this.chunkNo = chunkNo;
+    public RemovedMessage(int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress) {
+        super("1.0", "REMOVED", senderId, fileId, chunkNo, inetSocketAddress);
     }
 
     public byte[] getBytes(){
         byte[] header = super.getBytes();
-        byte[] chunkNo_bytes = (" " + chunkNo + "\r\n\r\n").getBytes();
-        byte[] ret = new byte[header.length + chunkNo_bytes.length];
+        byte[] term = ("\r\n\r\n").getBytes();
+        byte[] ret = new byte[header.length + term.length];
         System.arraycopy(header       , 0, ret, 0, header.length);
-        System.arraycopy(chunkNo_bytes, 0, ret, header.length, chunkNo_bytes.length);
+        System.arraycopy(term         , 0, ret, header.length, term.length);
         return ret;
     }
 
@@ -58,15 +60,15 @@ public class RemovedMessage extends Message {
                 e.printStackTrace();
             }
 
-            PutchunkMessage message = new PutchunkMessage(peer.getVersion(), peer.getId(),
-                    getFileId(), chunkNo,
+            PutchunkMessage message = new PutchunkMessage(peer.getId(),
+                    getFileId(), getChunkNo(),
                     peer.getFileTable().getChunkDesiredRepDegree(getFileId()), chunk, peer.getDataBroadcastAddress()
             );
             int numStored, attempts = 0;
             do {
                 try {
                     peer.send(message);
-                    System.out.println("    Sent chunk " + chunkNo);
+                    System.out.println("    Sent chunk " + getChunkID());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -74,19 +76,11 @@ public class RemovedMessage extends Message {
                     sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
                 } catch (InterruptedException ignored) {
                 }
-                numStored = peer.popStoredMessages(message);
+                numStored = peer.getControlSocketHandler().popStoredMessages(message);
                 System.out.println("    Got " + numStored + " stored messages");
                 attempts++;
-            }while( numStored < peer.getFileTable().getChunkDesiredRepDegree(getFileId() + "-" + chunkNo)
+            }while( numStored < peer.getFileTable().getChunkDesiredRepDegree(getChunkID())
                     && attempts < ATTEMPTS);
         }
-    }
-
-    public int getChunkNo() {
-        return chunkNo;
-    }
-
-    public String getChunkID() {
-        return getFileId() + "-" + getChunkNo();
     }
 }

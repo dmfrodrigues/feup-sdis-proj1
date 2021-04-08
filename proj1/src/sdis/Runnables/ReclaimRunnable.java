@@ -1,3 +1,8 @@
+package sdis.Runnables;
+
+import sdis.Messages.RemovedMessage;
+import sdis.Peer;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -17,7 +22,7 @@ public class ReclaimRunnable implements Runnable {
         if(peer.getStorageManager().getMemoryUsed() > space_kb *1000){
             List<File> chunks = peer.getStorageManager().getChunks();
             for (File file : chunks) {
-                RemovedMessage message = new RemovedMessage(peer.getVersion(), peer.getId(),
+                RemovedMessage message = new RemovedMessage(peer.getId(),
                         file.getName().split("-", 2)[0],
                         Integer.parseInt(file.getName().split("-", 2)[1]), peer.getControlAddress());
                 file.delete();
