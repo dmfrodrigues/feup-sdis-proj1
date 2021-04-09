@@ -1,4 +1,4 @@
-package sdis;
+import sdis.Peer;
 
 import java.io.IOException;
 import java.net.InetAddress;
