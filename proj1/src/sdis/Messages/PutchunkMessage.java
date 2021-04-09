@@ -14,6 +14,10 @@ public class PutchunkMessage extends MessageWithBody {
 
         this.replicationDeg = replicationDeg;
     }
+    
+    public int getReplicationDegree() {
+        return replicationDeg;
+    }
 
     public byte[] getBytes(){
         byte[] header = super.getBytes();
