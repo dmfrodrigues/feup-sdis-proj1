@@ -102,6 +102,11 @@ public class ChunkStorageManager {
         return true;
     }
 
+    public void deleteChunk(String chunkID){
+        File chunk = new File(path + "/" + chunkID);
+        chunk.delete();
+    }
+
     public void deleteFile(String fileID){
         File storage = new File(path);
         File[] chunks = Objects.requireNonNull(storage.listFiles((dir, name) -> name.startsWith(fileID)));
