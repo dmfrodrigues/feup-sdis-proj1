@@ -4,3 +4,4 @@ out/
 *.iml
 bin/
 *.pdf
+build/

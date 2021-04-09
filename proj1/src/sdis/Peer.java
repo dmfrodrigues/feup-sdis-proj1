@@ -42,6 +42,8 @@ public class Peer implements PeerInterface {
 
     private final Random random = new Random(System.currentTimeMillis());
 
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(30);
+
     public Peer(
             String version,
             int id,
@@ -95,6 +97,10 @@ public class Peer implements PeerInterface {
 
     public Random getRandom() {
         return random;
+    }
+
+    public ScheduledExecutorService getExecutor(){
+        return executor;
     }
 
     public static class CleanupRemoteObjectRunnable implements Runnable {
@@ -237,6 +243,18 @@ public class Peer implements PeerInterface {
     public void send(Message message) throws IOException {
         DatagramPacket packet = message.getPacket();
         sendSocket.send(packet);
+
+
+        // Starts the delete process for one of the pending files
+        if(!this.getFileTable().getPendingDelete().isEmpty()) {
+            System.out.println(this.getFileTable().getPendingDelete());
+            Iterator<String> i = this.getFileTable().getPendingDelete().iterator();
+            if(!i.hasNext()) return;
+            String path = i.next();
+            i.remove();
+            System.out.println("Trying to delete " + path + " again");
+            delete(path);
+        }
     }
 
     public abstract static class SocketHandler implements Runnable {
@@ -283,16 +301,10 @@ public class Peer implements PeerInterface {
 
     public static class ControlSocketHandler extends SocketHandler {
         /**
-         * Executor; is used to execute the promises.
-         *
-         * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
-         * being used.
-         */
-        private final ExecutorService executor = Executors.newFixedThreadPool(4);
-        /**
          * @brief Map to store which peers stored which chunks.
          */
         private final Map<String, Set<Integer>> storedMessageMap = new HashMap<>();
+
 
         public ControlSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
@@ -300,9 +312,59 @@ public class Peer implements PeerInterface {
 
         @Override
         protected void handle(Message message) {
-            if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof RemovedMessage  || message instanceof DeleteMessage) {
+
+            if (
+                message instanceof StoredMessage ||
+                message instanceof GetchunkMessage ||
+                message instanceof RemovedMessage  ||
+                message instanceof DeleteMessage
+            ) {
                 message.process(getPeer());
             }
+            if(getPeer().requireVersion("1.2") && (
+                message instanceof UnstoreMessage
+            )) {
+                message.process(getPeer());
+            }else if(message instanceof DeletedMessage && getPeer().requireVersion("1.1"))
+                message.process(getPeer());
+        }
+
+        public void register(DeletedMessage deletedMessage) {
+            synchronized( getPeer().getFileTable().getFileStoredByPeers(deletedMessage.getFileId())) {
+                getPeer().getFileTable().removePeerFromFileStored(deletedMessage.getFileId(), deletedMessage.getSenderId());
+                getPeer().getFileTable().getFileStoredByPeers(deletedMessage.getFileId()).notifyAll();
+            }
+        }
+
+        public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
+            synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
+                return getPeer().getExecutor().submit(() -> {
+                    Future<Integer> f = resolveWhenAllPeersDeleted(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()));
+                    Integer ret;
+                    try {
+                        ret = f.get(millis, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException e) {
+                        f.cancel(true);
+                        synchronized (getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
+                            ret = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()).size();
+                        }
+                    }
+                    return ret;
+                });
+            }
+        }
+
+        private Future<Integer> resolveWhenAllPeersDeleted(Set<Integer> peersThatNotDeleted){
+            return getPeer().getExecutor().submit(() -> {
+                synchronized(peersThatNotDeleted){
+                    while(peersThatNotDeleted.size() > 0) {
+                        try {
+                            peersThatNotDeleted.wait();
+                        } catch (InterruptedException ignored) {}
+                    }
+                    return 0; // No peers left to delete
+                }
+            });
         }
 
         /**
@@ -311,6 +373,8 @@ public class Peer implements PeerInterface {
          * @param storedMessage STORED message to be registered
          */
         public void register(StoredMessage storedMessage) {
+            if(!storedMessage.getVersion().equals("1.0"))
+                getPeer().getFileTable().addPeerToFileStored(storedMessage.getFileId(), storedMessage.getSenderId());
             String chunkId = storedMessage.getChunkID();
             synchronized(storedMessageMap) {
                 if (storedMessageMap.containsKey(chunkId)){
@@ -329,6 +393,9 @@ public class Peer implements PeerInterface {
          *
          * If the required number of STORED messages is met earlier than that time period, the future resolves immediately.
          *
+         * Useful when processing a received PUTCHUNK message, as the peer only needs to know how many peers stored
+         * that chunk, not who exactly stored that chunk.
+         *
          * @param m         PUTCHUNK message to check answers for
          * @param millis    Maximum time to wait for the required number of STORED
          * @return
@@ -338,7 +405,7 @@ public class Peer implements PeerInterface {
                 String chunkId = m.getChunkID();
                 Set<Integer> peersThatStored = new HashSet<>();
                 storedMessageMap.put(chunkId, peersThatStored);
-                return executor.submit(() -> {
+                return getPeer().getExecutor().submit(() -> {
                     Future<Integer> f = resolveWhenReplicationDegreeIsMet(m, peersThatStored);
                     Integer ret;
                     try {
@@ -358,6 +425,33 @@ public class Peer implements PeerInterface {
         }
 
         /**
+         * @brief Get a future relative to which peers sent STORED messages answering a given PUTCHUNK message which
+         * were collected over a period of time specified in milliseconds.
+         *
+         * Only returns after exactly a period of millis milliseconds.
+         *
+         * Useful when running as initiator peer during backup, as we want to know all peers who reported STORED over a
+         * certain period, so that we can later determine if too many of those peers have stored a chunk, and pick a
+         * certain number of them to send UNSTORE to.
+         *
+         * @param m         PUTCHUNK message to check answers for
+         * @param millis    Maximum time to wait for the required number of STORED
+         * @return
+         */
+        public Future<Set<Integer>> checkWhichPeersStored(PutchunkMessage m, int millis){
+            String chunkId = m.getChunkID();
+            HashSet<Integer> peersThatStored = new HashSet<>();
+            synchronized(storedMessageMap) {
+                storedMessageMap.put(chunkId, peersThatStored);
+            }
+            return getPeer().getExecutor().schedule(() -> {
+                synchronized (peersThatStored){
+                    return (HashSet<Integer>) peersThatStored.clone();
+                }
+            }, millis, TimeUnit.MILLISECONDS);
+        }
+
+        /**
          * @brief Get a future that will only resolve when replication degree required for a chunk is met.
          *
          * The future is relative to how many peers have confirmed to be storing the chunk.
@@ -367,7 +461,7 @@ public class Peer implements PeerInterface {
          * @return
          */
         private Future<Integer> resolveWhenReplicationDegreeIsMet(PutchunkMessage m, Set<Integer> peersThatStored){
-            return executor.submit(() -> {
+            return getPeer().getExecutor().submit(() -> {
                 synchronized(peersThatStored){
                     while(peersThatStored.size() < m.getReplicationDegree()) {
                         try {
@@ -381,8 +475,6 @@ public class Peer implements PeerInterface {
     }
 
     public static class DataBroadcastSocketHandler extends SocketHandler {
-
-        private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
         final Map<String, ArrayList<Byte>> map = new HashMap<>();
 
@@ -411,7 +503,7 @@ public class Peer implements PeerInterface {
         private synchronized Future<byte[]> getPutChunkPromise(String chunkId){
             ArrayList<Byte> retList = new ArrayList<>();
             map.put(chunkId, retList);
-            return executor.submit(() -> {
+            return getPeer().getExecutor().submit(() -> {
                 synchronized (retList) {
                     while(retList.size() == 0) retList.wait();
                     byte[] ret;
@@ -444,13 +536,6 @@ public class Peer implements PeerInterface {
     }
 
     public static class DataRecoverySocketHandler extends SocketHandler {
-        /**
-         * Executor; is used to execute the promises.
-         *
-         * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
-         * being used.
-         */
-        private final ExecutorService executor = Executors.newFixedThreadPool(4);
         /**
          * Map of already-received chunks;
          * chunks are stored in this map by DataRecoverySocketHandler#register(String, byte[]),
@@ -517,7 +602,7 @@ public class Peer implements PeerInterface {
         private synchronized Future<byte[]> getChunkPromise(String chunkId){
             ArrayList<Byte> retList = new ArrayList<>();
             map.put(chunkId, retList);
-            return executor.submit(() -> {
+            return getPeer().getExecutor().submit(() -> {
                 synchronized (retList) {
                     while(retList.size() == 0) retList.wait();
                     byte[] ret;
