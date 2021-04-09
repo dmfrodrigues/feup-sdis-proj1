@@ -40,7 +40,7 @@ test2 () {
     fi
 }
 
-cd bin
+cd build
 ls
 rm -rf 1 2 3 4
 curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release  # 102B
@@ -76,7 +76,7 @@ sleep 1
 timeout $TIMEOUT java PeerDriver $VERSION 3 service3 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID3=$!
 sleep 2
 
-timeout $TIMEOUT java TestApp service1 BACKUP InRelease 1
+timeout $TIMEOUT java TestApp service1 BACKUP InRelease 3
 sleep 4
 
 # in the end, 3 must have deleted the two first backed up files

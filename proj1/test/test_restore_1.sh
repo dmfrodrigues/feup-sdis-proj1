@@ -23,7 +23,7 @@ test () {
     fi
 }
 
-cd bin
+cd build
 rm -rf 1 2
 rm -rf testfiles
 mkdir testfiles

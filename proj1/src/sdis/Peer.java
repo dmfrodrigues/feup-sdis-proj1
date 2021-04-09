@@ -5,7 +5,6 @@ import sdis.Runnables.*;
 import sdis.Storage.ChunkStorageManager;
 import sdis.Storage.FileChunkIterator;
 import sdis.Storage.FileTable;
-import sdis.Utils.Pair;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -65,7 +64,7 @@ public class Peer implements PeerInterface {
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        fileTable = new FileTable("../bin/"+id);
+        fileTable = new FileTable("../build/"+id);
         fileTable.load();
 
         // Create sockets
@@ -88,6 +87,10 @@ public class Peer implements PeerInterface {
         controlSocketHandlerThread      .start();
         dataBroadcastSocketHandlerThread.start();
         dataRecoverySocketHandlerThread .start();
+    }
+
+    public boolean requireVersion(String requiredVersion){
+        return (getVersion().compareTo(requiredVersion) >= 0);
     }
 
     public Random getRandom() {
@@ -291,27 +294,20 @@ public class Peer implements PeerInterface {
     }
 
     public static class ControlSocketHandler extends SocketHandler {
+        /**
+         * Executor; is used to execute the promises.
+         *
+         * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
+         * being used.
+         */
+        private final ExecutorService executor = Executors.newFixedThreadPool(4);
+        /**
+         * @brief Map to store which peers stored which chunks.
+         */
+        private final Map<String, Set<Integer>> storedMessageMap = new HashMap<>();
+
         public ControlSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
-        }
-
-
-        private final Map<Pair<String, Integer>, Set<Integer>> storedMessageMap = new HashMap<>();
-        public void pushStoredMessage(StoredMessage storedMessage) {
-            Pair<String, Integer> key = new Pair<>(storedMessage.getFileId(), storedMessage.getChunkNo());
-            if(!storedMessageMap.containsKey(key))
-                storedMessageMap.put(key, new HashSet<>());
-            storedMessageMap.get(key).add(storedMessage.getSenderId());
-
-            if(!storedMessage.getVersion().equals("1.0"))
-                getPeer().getFileTable().addPeerToFileStored(storedMessage.getFileId(), storedMessage.getSenderId());
-        }
-        public int popStoredMessages(PutchunkMessage putchunkMessage){
-            Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());
-            Set<Integer> storedMessages = storedMessageMap.get(key);
-            int ret = (storedMessages != null ? storedMessages.size() : 0);
-            if(storedMessages != null) storedMessages.clear();
-            return ret;
         }
 
         @Override
@@ -321,6 +317,82 @@ public class Peer implements PeerInterface {
                 message instanceof DeletedMessage) {
                 message.process(getPeer());
             }
+        }
+
+        /**
+         * @brief Register that a STORED message was received.
+         *
+         * @param storedMessage STORED message to be registered
+         */
+        public void register(StoredMessage storedMessage) {
+            if(!storedMessage.getVersion().equals("1.0"))
+                getPeer().getFileTable().addPeerToFileStored(storedMessage.getFileId(), storedMessage.getSenderId());
+            String chunkId = storedMessage.getChunkID();
+            synchronized(storedMessageMap) {
+                if (storedMessageMap.containsKey(chunkId)){
+                    Set<Integer> peersThatStored = storedMessageMap.get(chunkId);
+                    synchronized (peersThatStored) {
+                        peersThatStored.add(storedMessage.getSenderId());
+                        peersThatStored.notifyAll();
+                    }
+                }
+            }
+        }
+
+        /**
+         * @brief Get a future relative to how many STORED messages answering a given PUTCHUNK message were collected
+         * over a period of time specified in milliseconds.
+         *
+         * If the required number of STORED messages is met earlier than that time period, the future resolves immediately.
+         *
+         * @param m         PUTCHUNK message to check answers for
+         * @param millis    Maximum time to wait for the required number of STORED
+         * @return
+         */
+        public Future<Integer> checkStored(PutchunkMessage m, int millis){
+            synchronized(storedMessageMap){
+                String chunkId = m.getChunkID();
+                Set<Integer> peersThatStored = new HashSet<>();
+                storedMessageMap.put(chunkId, peersThatStored);
+                return executor.submit(() -> {
+                    Future<Integer> f = resolveWhenReplicationDegreeIsMet(m, peersThatStored);
+                    Integer ret;
+                    try {
+                        ret = f.get(millis, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException e) {
+                        f.cancel(true);
+                        synchronized (peersThatStored){
+                            ret = peersThatStored.size();
+                        }
+                    }
+                    synchronized (storedMessageMap){
+                        storedMessageMap.remove(chunkId);
+                    }
+                    return ret;
+                });
+            }
+        }
+
+        /**
+         * @brief Get a future that will only resolve when replication degree required for a chunk is met.
+         *
+         * The future is relative to how many peers have confirmed to be storing the chunk.
+         *
+         * @param m                 PUTCHUNK message to check answers for
+         * @param peersThatStored   Set of peers that will report to have STORED the chunk
+         * @return
+         */
+        private Future<Integer> resolveWhenReplicationDegreeIsMet(PutchunkMessage m, Set<Integer> peersThatStored){
+            return executor.submit(() -> {
+                synchronized(peersThatStored){
+                    while(peersThatStored.size() < m.getReplicationDegree()) {
+                        try {
+                            peersThatStored.wait();
+                        } catch (InterruptedException ignored) {}
+                    }
+                    return peersThatStored.size();
+                }
+            });
         }
     }
 

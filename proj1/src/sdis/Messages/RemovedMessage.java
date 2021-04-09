@@ -10,6 +10,8 @@ import java.net.InetSocketAddress;
 import static java.lang.Thread.sleep;
 import java.io.File;
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class RemovedMessage extends MessageWithChunkNo {
     private static final int WAIT_MILLIS = 1000;
@@ -60,12 +62,17 @@ public class RemovedMessage extends MessageWithChunkNo {
                 e.printStackTrace();
             }
 
+            int replicationDegree = peer.getFileTable().getChunkDesiredRepDegree(getFileId());
+
             PutchunkMessage message = new PutchunkMessage(peer.getId(),
                     getFileId(), getChunkNo(),
-                    peer.getFileTable().getChunkDesiredRepDegree(getFileId()), chunk, peer.getDataBroadcastAddress()
+                    replicationDegree, chunk, peer.getDataBroadcastAddress()
             );
+
             int numStored, attempts = 0;
+            int wait_millis = WAIT_MILLIS;
             do {
+                Future<Integer> f = peer.getControlSocketHandler().checkStored(message, wait_millis);
                 try {
                     peer.send(message);
                     System.out.println("    Sent chunk " + getChunkID());
@@ -73,14 +80,17 @@ public class RemovedMessage extends MessageWithChunkNo {
                     e.printStackTrace();
                 }
                 try {
-                    sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
-                } catch (InterruptedException ignored) {
+                    numStored = f.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    f.cancel(true);
+                    System.err.println("checkStored future failed; aborting");
+                    e.printStackTrace();
+                    return;
                 }
-                numStored = peer.getControlSocketHandler().popStoredMessages(message);
-                System.out.println("    Got " + numStored + " stored messages");
+                System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
                 attempts++;
-            }while( numStored < peer.getFileTable().getChunkDesiredRepDegree(getChunkID())
-                    && attempts < ATTEMPTS);
+                wait_millis *= 2;
+            } while(numStored < replicationDegree && attempts < ATTEMPTS);
         }
     }
 }

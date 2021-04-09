@@ -41,7 +41,7 @@ test2 () {
     fi
 }
 
-cd bin
+cd build
 ls
 rm -rf 1 2 3 4
 curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release  # 102B

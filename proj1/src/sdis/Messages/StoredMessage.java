@@ -21,7 +21,7 @@ public class StoredMessage extends MessageWithChunkNo {
 
     @Override
     public void process(Peer peer) {
-        peer.getControlSocketHandler().pushStoredMessage(this);
+        peer.getControlSocketHandler().register(this);
         peer.getFileTable().incrementActualRepDegree(getChunkID());
     }
 }
