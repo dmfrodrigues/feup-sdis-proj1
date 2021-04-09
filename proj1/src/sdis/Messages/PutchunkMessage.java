@@ -23,7 +23,7 @@ public class PutchunkMessage extends MessageWithBody {
 
     public byte[] getBytes(){
         byte[] header = super.getBytes();
-        byte[] replicationDeg_bytes = (" " + replicationDeg + "\r\n\r\n").getBytes();
+        byte[] replicationDeg_bytes = (" " + getReplicationDegree() + "\r\n\r\n").getBytes();
         byte[] ret = new byte[header.length + replicationDeg_bytes.length + getBody().length];
         System.arraycopy(header                      , 0, ret, 0, header.length);
         System.arraycopy(replicationDeg_bytes        , 0, ret, header.length, replicationDeg_bytes.length);
