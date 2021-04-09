@@ -243,6 +243,18 @@ public class Peer implements PeerInterface {
     public void send(Message message) throws IOException {
         DatagramPacket packet = message.getPacket();
         sendSocket.send(packet);
+
+
+        // Starts the delete process for one of the pending files
+        if(!this.getFileTable().getPendingDelete().isEmpty()) {
+            System.out.println(this.getFileTable().getPendingDelete());
+            Iterator<String> i = this.getFileTable().getPendingDelete().iterator();
+            if(!i.hasNext()) return;
+            String path = i.next();
+            i.remove();
+            System.out.println("Trying to delete " + path + " again");
+            delete(path);
+        }
     }
 
     public abstract static class SocketHandler implements Runnable {
@@ -293,12 +305,14 @@ public class Peer implements PeerInterface {
          */
         private final Map<String, Set<Integer>> storedMessageMap = new HashMap<>();
 
+
         public ControlSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
         }
 
         @Override
         protected void handle(Message message) {
+
             if (
                 message instanceof StoredMessage ||
                 message instanceof GetchunkMessage ||
@@ -311,7 +325,46 @@ public class Peer implements PeerInterface {
                 message instanceof UnstoreMessage
             )) {
                 message.process(getPeer());
+            }else if(message instanceof DeletedMessage && getPeer().requireVersion("1.1"))
+                message.process(getPeer());
+        }
+
+        public void register(DeletedMessage deletedMessage) {
+            synchronized( getPeer().getFileTable().getFileStoredByPeers(deletedMessage.getFileId())) {
+                getPeer().getFileTable().removePeerFromFileStored(deletedMessage.getFileId(), deletedMessage.getSenderId());
+                getPeer().getFileTable().getFileStoredByPeers(deletedMessage.getFileId()).notifyAll();
             }
+        }
+
+        public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
+            synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
+                return executor.submit(() -> {
+                    Future<Integer> f = resolveWhenAllPeersDeleted(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()));
+                    Integer ret;
+                    try {
+                        ret = f.get(millis, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException e) {
+                        f.cancel(true);
+                        synchronized (getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
+                            ret = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()).size();
+                        }
+                    }
+                    return ret;
+                });
+            }
+        }
+
+        private Future<Integer> resolveWhenAllPeersDeleted(Set<Integer> peersThatNotDeleted){
+            return executor.submit(() -> {
+                synchronized(peersThatNotDeleted){
+                    while(peersThatNotDeleted.size() > 0) {
+                        try {
+                            peersThatNotDeleted.wait();
+                        } catch (InterruptedException ignored) {}
+                    }
+                    return 0; // No peers left to delete
+                }
+            });
         }
 
         /**
@@ -320,6 +373,8 @@ public class Peer implements PeerInterface {
          * @param storedMessage STORED message to be registered
          */
         public void register(StoredMessage storedMessage) {
+            if(!storedMessage.getVersion().equals("1.0"))
+                getPeer().getFileTable().addPeerToFileStored(storedMessage.getFileId(), storedMessage.getSenderId());
             String chunkId = storedMessage.getChunkID();
             synchronized(storedMessageMap) {
                 if (storedMessageMap.containsKey(chunkId)){

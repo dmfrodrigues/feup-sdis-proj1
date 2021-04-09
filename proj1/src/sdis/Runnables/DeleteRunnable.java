@@ -4,6 +4,10 @@ import sdis.Messages.DeleteMessage;
 import sdis.Peer;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
+import static java.lang.Thread.sleep;
 
 public class DeleteRunnable implements Runnable{
 
@@ -32,6 +36,30 @@ public class DeleteRunnable implements Runnable{
             peer.send(message);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        // Delete Enhancement
+        if(peer.requireVersion("1.1")){
+            // wait for DELETED messages, returns number of deleted messages
+            Future<Integer> f = peer.getControlSocketHandler().checkDeleted(message, 1000);
+            //sleep(1000);
+
+            if(peer.getFileTable().getFileStoredByPeers(peer.getFileTable().getFileID(pathname)) == null)
+                return;
+
+            int notDeleted = 0;
+            try {
+                notDeleted = f.get();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+            if(notDeleted > 0){
+                peer.getFileTable().addPendingDelete(pathname);
+            }
+            else{
+                peer.getFileTable().removePendingDelete(pathname);
+            }
+
         }
     }
 }
