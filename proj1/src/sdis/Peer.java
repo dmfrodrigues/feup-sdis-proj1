@@ -338,7 +338,7 @@ public class Peer implements PeerInterface {
 
         public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
             synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
-                return executor.submit(() -> {
+                return getPeer().getExecutor().submit(() -> {
                     Future<Integer> f = resolveWhenAllPeersDeleted(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()));
                     Integer ret;
                     try {
@@ -355,7 +355,7 @@ public class Peer implements PeerInterface {
         }
 
         private Future<Integer> resolveWhenAllPeersDeleted(Set<Integer> peersThatNotDeleted){
-            return executor.submit(() -> {
+            return getPeer().getExecutor().submit(() -> {
                 synchronized(peersThatNotDeleted){
                     while(peersThatNotDeleted.size() > 0) {
                         try {
