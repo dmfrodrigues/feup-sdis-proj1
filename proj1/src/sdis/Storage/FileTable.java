@@ -23,7 +23,7 @@ public class FileTable implements Serializable {
     /**
      * Pending files to be deleted. Files which not all peers have successfully deleted.
      */
-    public static Set<String> pendingDelete = new HashSet<>();
+    public static Set<String> pendingDelete = ConcurrentHashMap.newKeySet();
 
     public FileTable(String path) {
         table_path = path + "/fileID.ser";

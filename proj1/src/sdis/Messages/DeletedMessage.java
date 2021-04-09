@@ -33,6 +33,5 @@ public class DeletedMessage extends Message{
 
         // update peer stored map
         peer.getFileTable().removePeerFromFileStored(getFileId(), getSenderId());
-
     }
 }

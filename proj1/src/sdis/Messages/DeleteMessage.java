@@ -25,12 +25,12 @@ public class DeleteMessage extends Message {
     public void process(Peer peer) {
         System.out.println("Peer " + getSenderId() + " requested file " + getFileId() + " to be deleted");
         peer.getStorageManager().deleteFile(this.getFileId());
-
-        // TODO change this Enhancement
-        if(peer.getVersion().equals("1.0")){
+        // Delete Enhancement
+        if(!peer.getVersion().equals("1.0")){
             DeletedMessage message = new DeletedMessage(peer.getId(),
                     getFileId(), getSenderId(), peer.getControlAddress());
             try {
+                System.out.println("Sending Deleted!");
                 peer.send(message);
             } catch (IOException e) {
                 e.printStackTrace();

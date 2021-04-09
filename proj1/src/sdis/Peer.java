@@ -235,8 +235,15 @@ public class Peer implements PeerInterface {
         DatagramPacket packet = message.getPacket();
         sendSocket.send(packet);
 
-        // Starts the delete process for pending files
-        for(String path: this.getFileTable().getPendingDelete()){
+
+        // Starts the delete process for one of the pending files
+        if(!this.getFileTable().getPendingDelete().isEmpty()) {
+            System.out.println(this.getFileTable().getPendingDelete());
+            Iterator<String> i = this.getFileTable().getPendingDelete().iterator();
+            if(!i.hasNext()) return;
+            String path = i.next();
+            i.remove();
+            System.out.println("Trying to delete " + path + " again");
             delete(path);
         }
     }
@@ -295,6 +302,9 @@ public class Peer implements PeerInterface {
             if(!storedMessageMap.containsKey(key))
                 storedMessageMap.put(key, new HashSet<>());
             storedMessageMap.get(key).add(storedMessage.getSenderId());
+
+            if(!storedMessage.getVersion().equals("1.0"))
+                getPeer().getFileTable().addPeerToFileStored(storedMessage.getFileId(), storedMessage.getSenderId());
         }
         public int popStoredMessages(PutchunkMessage putchunkMessage){
             Pair<String, Integer> key = new Pair<>(putchunkMessage.getFileId(), putchunkMessage.getChunkNo());

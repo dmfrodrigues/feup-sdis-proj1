@@ -31,7 +31,7 @@ public class MessageFactory {
 
         int chunkNo = Integer.parseInt(headerSplit[4]);
         switch (messageType) {
-            case "STORED": return new StoredMessage(senderId, fileId, chunkNo, inetSocketAddress);
+            case "STORED": return new StoredMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             case "GETCHUNK": return new GetchunkMessage(senderId, fileId, chunkNo, inetSocketAddress);
             case "REMOVED": return new RemovedMessage(senderId, fileId, chunkNo, inetSocketAddress);
             default: break;

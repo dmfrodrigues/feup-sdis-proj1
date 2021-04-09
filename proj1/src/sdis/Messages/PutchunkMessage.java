@@ -48,7 +48,7 @@ public class PutchunkMessage extends MessageWithBody {
             e.printStackTrace();
         }
 
-        Message response = new StoredMessage(peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
+        Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
         try {
             peer.send(response);
         } catch (IOException e) {
