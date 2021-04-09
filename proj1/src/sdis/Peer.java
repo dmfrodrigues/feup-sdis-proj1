@@ -19,6 +19,8 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static org.graalvm.compiler.replacements.amd64.AMD64StringSubstitutions.compareTo;
+
 public class Peer implements PeerInterface {
     /**
      * Initially reserved storage for backing up chunks (in bytes).
@@ -64,7 +66,7 @@ public class Peer implements PeerInterface {
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        fileTable = new FileTable("../bin/"+id);
+        fileTable = new FileTable("../build/"+id);
         fileTable.load();
 
         // Create sockets
@@ -87,6 +89,10 @@ public class Peer implements PeerInterface {
         controlSocketHandlerThread      .start();
         dataBroadcastSocketHandlerThread.start();
         dataRecoverySocketHandlerThread .start();
+    }
+
+    public boolean requireVersion(String requiredVersion){
+        return (compareTo(getVersion(), requiredVersion) >= 0);
     }
 
     public Random getRandom() {
