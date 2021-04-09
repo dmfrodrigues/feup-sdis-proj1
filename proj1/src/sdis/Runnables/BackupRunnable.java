@@ -1,12 +1,15 @@
 package sdis.Runnables;
 
 import sdis.Messages.PutchunkMessage;
+import sdis.Messages.UnstoreMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkIterator;
 
 import java.io.IOException;
-
-import static java.lang.Thread.sleep;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class BackupRunnable implements Runnable {
     /**
@@ -38,10 +41,13 @@ public class BackupRunnable implements Runnable {
             byte[] chunk = fileChunkIterator.next();
             PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
-            peer.getFileTable().setChunkDesiredRepDegree(fileChunkIterator.getFileId() + "-" + i, replicationDegree);
+            peer.getFileTable().setChunkDesiredRepDegree(message.getChunkID(), replicationDegree);
 
+            Set<Integer> peersThatStored;
             int numStored, attempts=0;
+            int wait_millis = WAIT_MILLIS;
             do {
+                Future<Set<Integer>> f = peer.getControlSocketHandler().checkWhichPeersStored(message, wait_millis);
                 try {
                     peer.send(message);
                     System.out.println("Sent chunk " + message.getChunkID());
@@ -49,12 +55,35 @@ public class BackupRunnable implements Runnable {
                     e.printStackTrace();
                 }
                 try {
-                    sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
-                } catch (InterruptedException ignored) {}
-                numStored = peer.getControlSocketHandler().popStoredMessages(message);
+                    peersThatStored = f.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    System.err.println("checkStored future failed; aborting");
+                    e.printStackTrace();
+                    return;
+                }
+                numStored = peersThatStored.size();
                 System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
                 attempts++;
+                wait_millis *= 2;
             } while(numStored < replicationDegree && attempts < ATTEMPTS);
+
+            // Send UNSTORE to whoever stored the chunk and didn't need to
+            if(peer.requireVersion("1.2")) {
+                if (numStored > replicationDegree) {
+                    int numUnstoreMessages = peersThatStored.size() - replicationDegree;
+                    System.out.println("About to send " + numUnstoreMessages + " UNSTORE messages");
+                    Iterator<Integer> it = peersThatStored.iterator();
+                    for (int j = 0; j < numUnstoreMessages; ++j) {
+                        UnstoreMessage m = new UnstoreMessage(peer.getId(), message.getFileId(), message.getChunkNo(), it.next(), peer.getControlAddress());
+                        try {
+                            peer.send(m);
+                        } catch (IOException e) {
+                            System.err.println("Failed to send UNSTORE message; ignoring");
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -6,8 +6,8 @@ import java.net.InetSocketAddress;
 
 public class StoredMessage extends MessageWithChunkNo {
 
-    public StoredMessage(int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
-        super("1.0", "STORED", senderId, fileId, chunkNo, inetSocketAddress);
+    public StoredMessage(String version, int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
+        super(version, "STORED", senderId, fileId, chunkNo, inetSocketAddress);
     }
 
     public byte[] getBytes(){
@@ -21,7 +21,7 @@ public class StoredMessage extends MessageWithChunkNo {
 
     @Override
     public void process(Peer peer) {
-        peer.getControlSocketHandler().pushStoredMessage(this);
+        peer.getControlSocketHandler().register(this);
         peer.getFileTable().incrementActualRepDegree(getChunkID());
     }
 }
