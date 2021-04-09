@@ -64,7 +64,7 @@ public class Peer implements PeerInterface {
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        fileTable = new FileTable("../bin/"+id);
+        fileTable = new FileTable("../build/"+id);
         fileTable.load();
 
         // Create sockets
@@ -87,6 +87,10 @@ public class Peer implements PeerInterface {
         controlSocketHandlerThread      .start();
         dataBroadcastSocketHandlerThread.start();
         dataRecoverySocketHandlerThread .start();
+    }
+
+    public boolean requireVersion(String requiredVersion){
+        return (getVersion().compareTo(requiredVersion) >= 0);
     }
 
     public Random getRandom() {
