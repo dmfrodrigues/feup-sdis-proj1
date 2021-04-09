@@ -1,4 +1,4 @@
-package sdis;
+import sdis.PeerInterface;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
