@@ -31,7 +31,6 @@ public class DeletedMessage extends Message{
         if(peer.getId() != initiatorId) return;
         System.out.println("Peer " + getSenderId() + " deleted " + getFileId());
 
-        // update peer stored map
-        peer.getFileTable().removePeerFromFileStored(getFileId(), getSenderId());
+        peer.getControlSocketHandler().register(this);
     }
 }

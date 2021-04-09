@@ -35,30 +35,30 @@ public class FileTable implements Serializable {
      * @param filename Filename
      * @param fileID File ID
      */
-    public void insert(String filename, String fileID, Integer numberChunks) {
+    public synchronized void insert(String filename, String fileID, Integer numberChunks) {
         table.put(filename, new Pair<>(fileID, numberChunks));
         save();
     }
 
-    public void incrementActualRepDegree(String chunkID){
+    public synchronized void incrementActualRepDegree(String chunkID){
         int actual = actualRepDegree.getOrDefault(chunkID, 0);
         actualRepDegree.put(chunkID, actual + 1);
         save();
     }
 
-    public void decrementActualRepDegree(String chunkID){
+    public synchronized void decrementActualRepDegree(String chunkID){
         int actual = actualRepDegree.getOrDefault(chunkID, 0);
         if(actual != 0)
             actualRepDegree.put(chunkID, actual - 1);
         save();
     }
 
-    public void setFileDesiredRepDegree(String fileID, int value){
+    public synchronized void setFileDesiredRepDegree(String fileID, int value){
         fileDesiredRepDegree.put(fileID, value);
         save();
     }
 
-    public void setChunkDesiredRepDegree(String chunkID, int value){
+    public synchronized void setChunkDesiredRepDegree(String chunkID, int value){
         chunkDesiredRepDegree.put(chunkID, value);
         save();
     }
@@ -100,26 +100,30 @@ public class FileTable implements Serializable {
         return fileIDs;
     }
 
-    public void addPeerToFileStored(String fileID, int peerID){
+    public synchronized void addPeerToFileStored(String fileID, int peerID){
         HashSet<Integer> set = fileStoredByPeers.getOrDefault(fileID, new HashSet<>());
         set.add(peerID);
         fileStoredByPeers.put(fileID, set);
+        save();
     }
 
-    public void removePeerFromFileStored(String fileID, int peerID){
+    public synchronized void removePeerFromFileStored(String fileID, int peerID){
         fileStoredByPeers.get(fileID).remove(peerID);
+        save();
     }
 
     public Set<Integer> getFileStoredByPeers(String fileID){
         return fileStoredByPeers.get(fileID);
     }
 
-    public void addPendingDelete(String path){
+    public synchronized void addPendingDelete(String path){
         pendingDelete.add(path);
+        save();
     }
 
-    public void removePendingDelete(String path){
+    public synchronized void removePendingDelete(String path){
         pendingDelete.remove(path);
+        save();
     }
 
     public Set<String> getPendingDelete(){

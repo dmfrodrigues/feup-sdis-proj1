@@ -306,6 +306,7 @@ public class Peer implements PeerInterface {
          */
         private final Map<String, Set<Integer>> storedMessageMap = new HashMap<>();
 
+
         public ControlSocketHandler(Peer peer, DatagramSocket socket) {
             super(peer, socket);
         }
@@ -313,10 +314,48 @@ public class Peer implements PeerInterface {
         @Override
         protected void handle(Message message) {
             if (message instanceof StoredMessage || message instanceof GetchunkMessage ||
-                message instanceof RemovedMessage  || message instanceof DeleteMessage ||
-                message instanceof DeletedMessage) {
+                message instanceof RemovedMessage  || message instanceof DeleteMessage) {
                 message.process(getPeer());
+            }else if(message instanceof DeletedMessage && getPeer().requireVersion("1.1"))
+                message.process(getPeer());
+        }
+
+        public void register(DeletedMessage deletedMessage) {
+            synchronized( getPeer().getFileTable().getFileStoredByPeers(deletedMessage.getFileId())) {
+                getPeer().getFileTable().removePeerFromFileStored(deletedMessage.getFileId(), deletedMessage.getSenderId());
+                getPeer().getFileTable().getFileStoredByPeers(deletedMessage.getFileId()).notifyAll();
             }
+        }
+
+        public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
+            synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
+                return executor.submit(() -> {
+                    Future<Integer> f = resolveWhenAllPeersDeleted(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()));
+                    Integer ret;
+                    try {
+                        ret = f.get(millis, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException e) {
+                        f.cancel(true);
+                        synchronized (getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
+                            ret = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()).size();
+                        }
+                    }
+                    return ret;
+                });
+            }
+        }
+
+        private Future<Integer> resolveWhenAllPeersDeleted(Set<Integer> peersThatNotDeleted){
+            return executor.submit(() -> {
+                synchronized(peersThatNotDeleted){
+                    while(peersThatNotDeleted.size() > 0) {
+                        try {
+                            peersThatNotDeleted.wait();
+                        } catch (InterruptedException ignored) {}
+                    }
+                    return 0; // No peers left to delete
+                }
+            });
         }
 
         /**
