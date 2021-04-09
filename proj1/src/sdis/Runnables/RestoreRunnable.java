@@ -7,6 +7,9 @@ import sdis.Storage.FileChunkOutput;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +55,39 @@ public class RestoreRunnable implements Runnable {
             GetchunkMessage message = new GetchunkMessage(peer.getId(), fileId, i, peer.getControlAddress());
             byte[] chunk = null;
             for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
+
+                // Restore enhancement
+                if(peer.getVersion().equals("1.3")){
+                    try {
+                        ServerSocket serverSocket = new ServerSocket(0);
+                        serverSocket.setSoTimeout((int) TIMEOUT_MILLIS);
+
+                        System.out.println("listening on address: " + serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort() );
+                        peer.send(new GetchunkMessage(peer.getId(), fileId, i, serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort(), peer.getControlAddress()));
+
+                        Socket socket = serverSocket.accept();
+                        socket.setSoTimeout((int) TIMEOUT_MILLIS);
+
+                        //Reads chunk
+                        InputStream input = socket.getInputStream();
+
+                        chunk = input.readAllBytes();
+
+                        try {
+                            fileChunkOutput.set(i, chunk);
+                        } catch (IOException e) {
+                            System.err.println("Failed to set chunk to file chunk output");
+                            e.printStackTrace();
+                            break;
+                        }
+
+                        socket.close();
+                        serverSocket.close();
+                    }catch (Exception e){}
+
+                    break;
+                }
+
                 // Make request
                 Future<byte[]> f;
                 try {

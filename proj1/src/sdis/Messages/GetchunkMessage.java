@@ -3,7 +3,9 @@ package sdis.Messages;
 import sdis.Peer;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 
 public class GetchunkMessage extends MessageWithChunkNo {
     /**
@@ -11,8 +13,18 @@ public class GetchunkMessage extends MessageWithChunkNo {
      */
     private static final int RESPONSE_TIMEOUT_MILLIS = 400;
 
+    /**
+     * Address used in version 1.3, IP:PORT
+     */
+    private String address = null;
+
     public GetchunkMessage(int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
         super("1.0", "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
+    }
+
+    public GetchunkMessage(int senderId, String fileId, int chunkNo, String address, InetSocketAddress inetSocketAddress){
+        super("1.3", "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
+        this.address = address;
     }
 
     public byte[] getBytes(){
@@ -24,12 +36,39 @@ public class GetchunkMessage extends MessageWithChunkNo {
         return ret;
     }
 
+    public String getHostname(){
+        return address.split(":")[0];
+    }
+
+    private int getPort(){
+        return Integer.parseInt(address.split(":")[1]);
+    }
+
     @Override
     public void process(Peer peer) {
+
         System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
-        if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
+
         byte[] chunk;
+
+        // Restore enhancement
+        if(getVersion().equals("1.3")){
+            try {
+                Socket socket = new Socket(getHostname(), getPort());
+                // send chunk
+                OutputStream output = socket.getOutputStream();
+                chunk = peer.getStorageManager().getChunk(getChunkID());
+                output.write(chunk);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+
+        if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
+
         try {
             chunk = peer.getStorageManager().getChunk(getChunkID());
         } catch (IOException e) {
