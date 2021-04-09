@@ -378,6 +378,7 @@ public class Peer implements PeerInterface {
                 e.printStackTrace();
                 return false;
             } catch (TimeoutException e) {
+                f.cancel(true);
                 return false;
             }
 
@@ -490,6 +491,7 @@ public class Peer implements PeerInterface {
                 e.printStackTrace();
                 return false;
             } catch (TimeoutException e) {
+                f.cancel(true);
                 return false;
             }
             return true;

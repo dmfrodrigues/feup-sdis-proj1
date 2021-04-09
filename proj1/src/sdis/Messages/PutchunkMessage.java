@@ -31,14 +31,16 @@ public class PutchunkMessage extends MessageWithBody {
 
         if(peer.getFileTable().getFileIDs().contains(getFileId())) // Checks if peer initiated this chunk
             return;
-        if(!peer.getStorageManager().saveChunk(chunkId, getBody()))
-            return;
-        System.out.println("Saved chunk " + chunkId);
+        if(!peer.getStorageManager().hasChunk(chunkId)) {
+            if (!peer.getStorageManager().saveChunk(chunkId, getBody()))
+                return;
+            System.out.println("Saved chunk " + chunkId);
 
-        peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);
-        peer.getFileTable().incrementActualRepDegree(chunkId);
+            peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);
+            peer.getFileTable().incrementActualRepDegree(chunkId);
 
-        peer.getDataBroadcastSocketHandler().register(getChunkID(), getBody());
+            peer.getDataBroadcastSocketHandler().register(getChunkID(), getBody());
+        }
 
         int wait_time = peer.getRandom().nextInt(400);
         try {
@@ -49,6 +51,7 @@ public class PutchunkMessage extends MessageWithBody {
         }
 
         Message response = new StoredMessage(peer.getVersion(), peer.getId(), getFileId(), getChunkNo(), peer.getControlAddress());
+
         try {
             peer.send(response);
         } catch (IOException e) {
