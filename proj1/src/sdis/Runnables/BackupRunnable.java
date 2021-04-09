@@ -5,6 +5,8 @@ import sdis.Peer;
 import sdis.Storage.FileChunkIterator;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static java.lang.Thread.sleep;
 
@@ -38,10 +40,12 @@ public class BackupRunnable implements Runnable {
             byte[] chunk = fileChunkIterator.next();
             PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
 
-            peer.getFileTable().setChunkDesiredRepDegree(fileChunkIterator.getFileId() + "-" + i, replicationDegree);
+            peer.getFileTable().setChunkDesiredRepDegree(message.getChunkID(), replicationDegree);
 
             int numStored, attempts=0;
+            int wait_millis = WAIT_MILLIS;
             do {
+                Future<Integer> f = peer.getControlSocketHandler().checkStored(message, wait_millis);
                 try {
                     peer.send(message);
                     System.out.println("Sent chunk " + message.getChunkID());
@@ -49,11 +53,15 @@ public class BackupRunnable implements Runnable {
                     e.printStackTrace();
                 }
                 try {
-                    sleep(WAIT_MILLIS * (long) Math.pow(2, attempts));
-                } catch (InterruptedException ignored) {}
-                numStored = peer.getControlSocketHandler().popStoredMessages(message);
+                    numStored = f.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    System.err.println("checkStored future failed; aborting");
+                    e.printStackTrace();
+                    return;
+                }
                 System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
                 attempts++;
+                wait_millis *= 2;
             } while(numStored < replicationDegree && attempts < ATTEMPTS);
         }
     }
