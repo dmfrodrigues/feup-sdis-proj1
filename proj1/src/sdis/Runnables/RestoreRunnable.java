@@ -73,6 +73,7 @@ public class RestoreRunnable implements Runnable {
                     System.err.println("Future execution caused an exception, trying again");
                     e.printStackTrace();
                 } catch (TimeoutException e) {
+                    f.cancel(true);
                     System.err.println("Timed out waiting for CHUNK, trying again");
                     e.printStackTrace();
                 }
