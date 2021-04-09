@@ -300,7 +300,7 @@ public class Peer implements PeerInterface {
          * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
          * being used.
          */
-        private final ExecutorService executor = Executors.newFixedThreadPool(4);
+        private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
         /**
          * @brief Map to store which peers stored which chunks.
          */
@@ -313,8 +313,18 @@ public class Peer implements PeerInterface {
 
         @Override
         protected void handle(Message message) {
-            if (message instanceof StoredMessage || message instanceof GetchunkMessage ||
-                message instanceof RemovedMessage  || message instanceof DeleteMessage) {
+
+            if (
+                message instanceof StoredMessage ||
+                message instanceof GetchunkMessage ||
+                message instanceof RemovedMessage  ||
+                message instanceof DeleteMessage
+            ) {
+                message.process(getPeer());
+            }
+            if(getPeer().requireVersion("1.2") && (
+                message instanceof UnstoreMessage
+            )) {
                 message.process(getPeer());
             }else if(message instanceof DeletedMessage && getPeer().requireVersion("1.1"))
                 message.process(getPeer());
@@ -384,6 +394,9 @@ public class Peer implements PeerInterface {
          *
          * If the required number of STORED messages is met earlier than that time period, the future resolves immediately.
          *
+         * Useful when processing a received PUTCHUNK message, as the peer only needs to know how many peers stored
+         * that chunk, not who exactly stored that chunk.
+         *
          * @param m         PUTCHUNK message to check answers for
          * @param millis    Maximum time to wait for the required number of STORED
          * @return
@@ -410,6 +423,33 @@ public class Peer implements PeerInterface {
                     return ret;
                 });
             }
+        }
+
+        /**
+         * @brief Get a future relative to which peers sent STORED messages answering a given PUTCHUNK message which
+         * were collected over a period of time specified in milliseconds.
+         *
+         * Only returns after exactly a period of millis milliseconds.
+         *
+         * Useful when running as initiator peer during backup, as we want to know all peers who reported STORED over a
+         * certain period, so that we can later determine if too many of those peers have stored a chunk, and pick a
+         * certain number of them to send UNSTORE to.
+         *
+         * @param m         PUTCHUNK message to check answers for
+         * @param millis    Maximum time to wait for the required number of STORED
+         * @return
+         */
+        public Future<Set<Integer>> checkWhichPeersStored(PutchunkMessage m, int millis){
+            String chunkId = m.getChunkID();
+            HashSet<Integer> peersThatStored = new HashSet<>();
+            synchronized(storedMessageMap) {
+                storedMessageMap.put(chunkId, peersThatStored);
+            }
+            return executor.schedule(() -> {
+                synchronized (peersThatStored){
+                    return (HashSet<Integer>) peersThatStored.clone();
+                }
+            }, millis, TimeUnit.MILLISECONDS);
         }
 
         /**

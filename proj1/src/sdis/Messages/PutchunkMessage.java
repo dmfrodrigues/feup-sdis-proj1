@@ -50,9 +50,16 @@ public class PutchunkMessage extends MessageWithBody {
             e.printStackTrace();
             return;
         }
+
         // If there are enough perceived STORED messages, don't store; just ignore
-        if(numStored >= getReplicationDegree()) return;
-        System.out.println("Perceived replication degree is " + numStored + ", storing");
+        if(peer.requireVersion("1.3")) {
+            if (numStored >= getReplicationDegree()) {
+                System.out.println("Perceived replication degree is " + numStored + ", ignoring");
+                return;
+            } else {
+                System.out.println("Perceived replication degree is " + numStored + ", storing");
+            }
+        }
 
         // If the execution is here, then this peer did not get enough STORED messages, so it will store the chunk itself
         if(!peer.getStorageManager().hasChunk(chunkId)) {
