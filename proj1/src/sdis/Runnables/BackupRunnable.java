@@ -1,14 +1,15 @@
 package sdis.Runnables;
 
 import sdis.Messages.PutchunkMessage;
+import sdis.Messages.UnstoreMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkIterator;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
-import static java.lang.Thread.sleep;
 
 public class BackupRunnable implements Runnable {
     /**
@@ -42,10 +43,11 @@ public class BackupRunnable implements Runnable {
 
             peer.getFileTable().setChunkDesiredRepDegree(message.getChunkID(), replicationDegree);
 
+            Set<Integer> peersThatStored;
             int numStored, attempts=0;
             int wait_millis = WAIT_MILLIS;
             do {
-                Future<Integer> f = peer.getControlSocketHandler().checkStored(message, wait_millis);
+                Future<Set<Integer>> f = peer.getControlSocketHandler().checkWhichPeersStored(message, wait_millis);
                 try {
                     peer.send(message);
                     System.out.println("Sent chunk " + message.getChunkID());
@@ -53,16 +55,33 @@ public class BackupRunnable implements Runnable {
                     e.printStackTrace();
                 }
                 try {
-                    numStored = f.get();
+                    peersThatStored = f.get();
                 } catch (InterruptedException | ExecutionException e) {
                     System.err.println("checkStored future failed; aborting");
                     e.printStackTrace();
                     return;
                 }
+                numStored = peersThatStored.size();
                 System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
                 attempts++;
                 wait_millis *= 2;
             } while(numStored < replicationDegree && attempts < ATTEMPTS);
+
+            // Send UNSTORE to whoever stored the chunk and didn't need to
+            if(numStored > replicationDegree){
+                int numUnstoreMessages = peersThatStored.size() - replicationDegree;
+                System.out.println("About to send " + numUnstoreMessages + "UNSTORE messages");
+                Iterator<Integer> it = peersThatStored.iterator();
+                for(int j = 0; j < numUnstoreMessages; ++j){
+                    UnstoreMessage m = new UnstoreMessage(peer.getId(), message.getFileId(), message.getChunkNo(), it.next(), peer.getControlAddress());
+                    try {
+                        peer.send(m);
+                    } catch (IOException e) {
+                        System.err.println("Failed to send UNSTORE message; ignoring");
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 }

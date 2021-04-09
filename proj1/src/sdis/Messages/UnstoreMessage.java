@@ -31,8 +31,8 @@ public class UnstoreMessage extends MessageWithChunkNo {
 
     @Override
     public void process(Peer peer) {
-        // TODO
         peer.getStorageManager().deleteChunk(getChunkID());
         peer.getFileTable().decrementActualRepDegree(getChunkID());
+        System.out.println("Unstored chunk " + getChunkID());
     }
 }
