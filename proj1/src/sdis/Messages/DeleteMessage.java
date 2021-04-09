@@ -26,7 +26,7 @@ public class DeleteMessage extends Message {
         System.out.println("Peer " + getSenderId() + " requested file " + getFileId() + " to be deleted");
         peer.getStorageManager().deleteFile(this.getFileId());
         // Delete Enhancement
-        if(!peer.getVersion().equals("1.0")){
+        if(peer.requireVersion("1.1")){
             DeletedMessage message = new DeletedMessage(peer.getId(),
                     getFileId(), getSenderId(), peer.getControlAddress());
             try {

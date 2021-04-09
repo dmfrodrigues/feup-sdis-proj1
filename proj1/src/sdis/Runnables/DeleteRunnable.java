@@ -39,7 +39,7 @@ public class DeleteRunnable implements Runnable{
         }
 
         // Delete Enhancement
-        if(!peer.getVersion().equals("1.0")){
+        if(peer.requireVersion("1.1")){
             // wait for DELETED messages, returns number of deleted messages
             Future<Integer> f = peer.getControlSocketHandler().checkDeleted(message, 1000);
             //sleep(1000);
