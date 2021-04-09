@@ -300,7 +300,17 @@ public class Peer implements PeerInterface {
 
         @Override
         protected void handle(Message message) {
-            if (message instanceof StoredMessage || message instanceof GetchunkMessage || message instanceof RemovedMessage  || message instanceof DeleteMessage) {
+            if (
+                message instanceof StoredMessage ||
+                message instanceof GetchunkMessage ||
+                message instanceof RemovedMessage  ||
+                message instanceof DeleteMessage
+            ) {
+                message.process(getPeer());
+            }
+            if(getPeer().requireVersion("1.2") && (
+                message instanceof UnstoreMessage
+            )) {
                 message.process(getPeer());
             }
         }
