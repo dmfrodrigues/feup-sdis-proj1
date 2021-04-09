@@ -331,27 +331,27 @@ public class Peer implements PeerInterface {
          * @return
          */
         public Future<Integer> checkStored(PutchunkMessage m, int millis){
-            String chunkId = m.getChunkID();
-            Set<Integer> peersThatStored = new HashSet<>();
             synchronized(storedMessageMap){
+                String chunkId = m.getChunkID();
+                Set<Integer> peersThatStored = new HashSet<>();
                 storedMessageMap.put(chunkId, peersThatStored);
-            }
-            return executor.submit(() -> {
-                Future<Integer> f = resolveWhenReplicationDegreeIsMet(m, peersThatStored);
-                Integer ret;
-                try {
-                    ret = f.get(millis, TimeUnit.MILLISECONDS);
-                } catch (TimeoutException e) {
-                    f.cancel(true);
-                    synchronized (peersThatStored){
-                        ret = peersThatStored.size();
+                return executor.submit(() -> {
+                    Future<Integer> f = resolveWhenReplicationDegreeIsMet(m, peersThatStored);
+                    Integer ret;
+                    try {
+                        ret = f.get(millis, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException e) {
+                        f.cancel(true);
+                        synchronized (peersThatStored){
+                            ret = peersThatStored.size();
+                        }
                     }
-                }
-                synchronized (storedMessageMap){
-                    storedMessageMap.remove(chunkId);
-                }
-                return ret;
-            });
+                    synchronized (storedMessageMap){
+                        storedMessageMap.remove(chunkId);
+                    }
+                    return ret;
+                });
+            }
         }
 
         /**
