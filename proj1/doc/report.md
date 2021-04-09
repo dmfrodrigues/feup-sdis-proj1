@@ -1,4 +1,4 @@
-# SDIS Project 1 - Distributed Backup Service
+# SDIS Project 1 -- Distributed Backup Service
 
 - **Project name:** Distributed Backup Service
 - **Short description:** Distributed backup service across a local area network
