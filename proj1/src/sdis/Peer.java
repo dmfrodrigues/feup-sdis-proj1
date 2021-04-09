@@ -67,7 +67,7 @@ public class Peer implements PeerInterface {
         String storagePath = id + "/storage/chunks";
         storageManager = new ChunkStorageManager(storagePath, INITIAL_STORAGE_SIZE);
 
-        fileTable = new FileTable("../bin/"+id);
+        fileTable = new FileTable("../build/"+id);
         fileTable.load();
 
         // Create sockets
