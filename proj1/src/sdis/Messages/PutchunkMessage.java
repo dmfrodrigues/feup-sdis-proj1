@@ -40,7 +40,7 @@ public class PutchunkMessage extends MessageWithBody {
 
         // Wait a random amount of time between 0-400ms, and collect all STORED messages.
         int wait_time = peer.getRandom().nextInt(400);
-        int numStored = 0;
+        int numStored;
         Future<Integer> f = peer.getControlSocketHandler().checkStored(this, wait_time);
         try {
             numStored = f.get();

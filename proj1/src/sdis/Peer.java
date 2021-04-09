@@ -5,7 +5,6 @@ import sdis.Runnables.*;
 import sdis.Storage.ChunkStorageManager;
 import sdis.Storage.FileChunkIterator;
 import sdis.Storage.FileTable;
-import sdis.Utils.Pair;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -311,7 +310,7 @@ public class Peer implements PeerInterface {
             String chunkId = storedMessage.getChunkID();
             synchronized(storedMessageMap) {
                 if (storedMessageMap.containsKey(chunkId)){
-                    Set peersThatStored = storedMessageMap.get(chunkId);
+                    Set<Integer> peersThatStored = storedMessageMap.get(chunkId);
                     synchronized (peersThatStored) {
                         peersThatStored.add(storedMessage.getSenderId());
                         peersThatStored.notifyAll();
