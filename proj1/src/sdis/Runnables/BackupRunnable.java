@@ -68,17 +68,19 @@ public class BackupRunnable implements Runnable {
             } while(numStored < replicationDegree && attempts < ATTEMPTS);
 
             // Send UNSTORE to whoever stored the chunk and didn't need to
-            if(numStored > replicationDegree){
-                int numUnstoreMessages = peersThatStored.size() - replicationDegree;
-                System.out.println("About to send " + numUnstoreMessages + "UNSTORE messages");
-                Iterator<Integer> it = peersThatStored.iterator();
-                for(int j = 0; j < numUnstoreMessages; ++j){
-                    UnstoreMessage m = new UnstoreMessage(peer.getId(), message.getFileId(), message.getChunkNo(), it.next(), peer.getControlAddress());
-                    try {
-                        peer.send(m);
-                    } catch (IOException e) {
-                        System.err.println("Failed to send UNSTORE message; ignoring");
-                        e.printStackTrace();
+            if(peer.requireVersion("1.2")) {
+                if (numStored > replicationDegree) {
+                    int numUnstoreMessages = peersThatStored.size() - replicationDegree;
+                    System.out.println("About to send " + numUnstoreMessages + " UNSTORE messages");
+                    Iterator<Integer> it = peersThatStored.iterator();
+                    for (int j = 0; j < numUnstoreMessages; ++j) {
+                        UnstoreMessage m = new UnstoreMessage(peer.getId(), message.getFileId(), message.getChunkNo(), it.next(), peer.getControlAddress());
+                        try {
+                            peer.send(m);
+                        } catch (IOException e) {
+                            System.err.println("Failed to send UNSTORE message; ignoring");
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
