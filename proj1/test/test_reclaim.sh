@@ -26,7 +26,7 @@ test () {
     fi
 }
 
-cd bin
+cd build
 rm -rf 1 2 3 4 5
 curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release         # 77.3KB
 timeout $TIMEOUT java PeerDriver $VERSION 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID1=$!
