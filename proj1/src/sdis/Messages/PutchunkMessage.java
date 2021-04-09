@@ -16,10 +16,6 @@ public class PutchunkMessage extends MessageWithBody {
 
         this.replicationDeg = replicationDeg;
     }
-    
-    public int getReplicationDegree() {
-        return replicationDeg;
-    }
 
     public int getReplicationDegree() {
         return replicationDeg;
