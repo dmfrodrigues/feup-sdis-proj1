@@ -14,7 +14,12 @@ argc=$#
 
 if ((argc == 1 ))
 then
-	peer_id=$1
+  if (($1 == "A" ))
+  then
+    rm -r *
+  else
+    rm -r "$1"
+	fi
 else 
 	echo "Usage: $0 [<peer_id>]]"
 	exit 1

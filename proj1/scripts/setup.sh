@@ -14,7 +14,7 @@ argc=$#
 
 if ((argc == 1 ))
 then
-	peer_id=$1
+	mkdir -p "$1/storage/chunks"
 else
 	echo "Usage: $0 [<peer_id>]]"
 	exit 1

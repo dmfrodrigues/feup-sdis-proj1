@@ -23,7 +23,7 @@ test () {
     fi
 }
 
-cd bin
+cd build
 rm -rf 1 2
 curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release  # 102B
 curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release         # 77.3KB
