@@ -82,6 +82,7 @@ public class RemovedMessage extends MessageWithChunkNo {
                 try {
                     numStored = f.get();
                 } catch (InterruptedException | ExecutionException e) {
+                    f.cancel(true);
                     System.err.println("checkStored future failed; aborting");
                     e.printStackTrace();
                     return;

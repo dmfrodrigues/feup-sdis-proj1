@@ -342,6 +342,7 @@ public class Peer implements PeerInterface {
                 try {
                     ret = f.get(millis, TimeUnit.MILLISECONDS);
                 } catch (TimeoutException e) {
+                    f.cancel(true);
                     synchronized (peersThatStored){
                         ret = peersThatStored.size();
                     }

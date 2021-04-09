@@ -5,6 +5,7 @@ import sdis.Peer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class PutchunkMessage extends MessageWithBody {
 
@@ -40,9 +41,11 @@ public class PutchunkMessage extends MessageWithBody {
         // Wait a random amount of time between 0-400ms, and collect all STORED messages.
         int wait_time = peer.getRandom().nextInt(400);
         int numStored = 0;
+        Future<Integer> f = peer.getControlSocketHandler().checkStored(this, wait_time);
         try {
-            numStored = peer.getControlSocketHandler().checkStored(this, wait_time).get();
+            numStored = f.get();
         } catch (InterruptedException | ExecutionException e) {
+            f.cancel(true);
             System.err.println("checkStored future failed; aborting");
             e.printStackTrace();
             return;
