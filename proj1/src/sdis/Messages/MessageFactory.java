@@ -23,13 +23,15 @@ public class MessageFactory {
         String fileId = headerSplit[3];
 
         // Messages without body
-        if (messageType.equals("DELETE")) {
-            return new DeleteMessage(senderId, fileId, inetSocketAddress);
+        switch(messageType) {
+            case "DELETE": return new DeleteMessage(senderId, fileId, inetSocketAddress);
+            case "DELETED": return new DeletedMessage(senderId, fileId, Integer.parseInt(headerSplit[4]), inetSocketAddress);
+            default: break;
         }
 
         int chunkNo = Integer.parseInt(headerSplit[4]);
         switch (messageType) {
-            case "STORED": return new StoredMessage(senderId, fileId, chunkNo, inetSocketAddress);
+            case "STORED": return new StoredMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
             case "GETCHUNK": return new GetchunkMessage(senderId, fileId, chunkNo, inetSocketAddress);
             case "REMOVED": return new RemovedMessage(senderId, fileId, chunkNo, inetSocketAddress);
             case "UNSTORE": return new UnstoreMessage(senderId, fileId, chunkNo, Integer.parseInt(headerSplit[5]), inetSocketAddress);
