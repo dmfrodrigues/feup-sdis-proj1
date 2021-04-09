@@ -42,6 +42,8 @@ public class Peer implements PeerInterface {
 
     private final Random random = new Random(System.currentTimeMillis());
 
+    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(30);
+
     public Peer(
             String version,
             int id,
@@ -95,6 +97,10 @@ public class Peer implements PeerInterface {
 
     public Random getRandom() {
         return random;
+    }
+
+    public ScheduledExecutorService getExecutor(){
+        return executor;
     }
 
     public static class CleanupRemoteObjectRunnable implements Runnable {
@@ -283,13 +289,6 @@ public class Peer implements PeerInterface {
 
     public static class ControlSocketHandler extends SocketHandler {
         /**
-         * Executor; is used to execute the promises.
-         *
-         * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
-         * being used.
-         */
-        private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
-        /**
          * @brief Map to store which peers stored which chunks.
          */
         private final Map<String, Set<Integer>> storedMessageMap = new HashMap<>();
@@ -351,7 +350,7 @@ public class Peer implements PeerInterface {
                 String chunkId = m.getChunkID();
                 Set<Integer> peersThatStored = new HashSet<>();
                 storedMessageMap.put(chunkId, peersThatStored);
-                return executor.submit(() -> {
+                return getPeer().getExecutor().submit(() -> {
                     Future<Integer> f = resolveWhenReplicationDegreeIsMet(m, peersThatStored);
                     Integer ret;
                     try {
@@ -390,7 +389,7 @@ public class Peer implements PeerInterface {
             synchronized(storedMessageMap) {
                 storedMessageMap.put(chunkId, peersThatStored);
             }
-            return executor.schedule(() -> {
+            return getPeer().getExecutor().schedule(() -> {
                 synchronized (peersThatStored){
                     return (HashSet<Integer>) peersThatStored.clone();
                 }
@@ -407,7 +406,7 @@ public class Peer implements PeerInterface {
          * @return
          */
         private Future<Integer> resolveWhenReplicationDegreeIsMet(PutchunkMessage m, Set<Integer> peersThatStored){
-            return executor.submit(() -> {
+            return getPeer().getExecutor().submit(() -> {
                 synchronized(peersThatStored){
                     while(peersThatStored.size() < m.getReplicationDegree()) {
                         try {
@@ -421,8 +420,6 @@ public class Peer implements PeerInterface {
     }
 
     public static class DataBroadcastSocketHandler extends SocketHandler {
-
-        private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
         final Map<String, ArrayList<Byte>> map = new HashMap<>();
 
@@ -451,7 +448,7 @@ public class Peer implements PeerInterface {
         private synchronized Future<byte[]> getPutChunkPromise(String chunkId){
             ArrayList<Byte> retList = new ArrayList<>();
             map.put(chunkId, retList);
-            return executor.submit(() -> {
+            return getPeer().getExecutor().submit(() -> {
                 synchronized (retList) {
                     while(retList.size() == 0) retList.wait();
                     byte[] ret;
@@ -484,13 +481,6 @@ public class Peer implements PeerInterface {
     }
 
     public static class DataRecoverySocketHandler extends SocketHandler {
-        /**
-         * Executor; is used to execute the promises.
-         *
-         * Will use a thread pool with 4 threads. This means there are always 4 running threads, even if they are not
-         * being used.
-         */
-        private final ExecutorService executor = Executors.newFixedThreadPool(4);
         /**
          * Map of already-received chunks;
          * chunks are stored in this map by DataRecoverySocketHandler#register(String, byte[]),
@@ -557,7 +547,7 @@ public class Peer implements PeerInterface {
         private synchronized Future<byte[]> getChunkPromise(String chunkId){
             ArrayList<Byte> retList = new ArrayList<>();
             map.put(chunkId, retList);
-            return executor.submit(() -> {
+            return getPeer().getExecutor().submit(() -> {
                 synchronized (retList) {
                     while(retList.size() == 0) retList.wait();
                     byte[] ret;
