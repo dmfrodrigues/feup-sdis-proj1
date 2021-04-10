@@ -25,8 +25,7 @@ test () {
 
 cd build
 rm -rf 1 2
-rm -rf testfiles
-mkdir testfiles
+mkdir -p testfiles
 if ! [ -f testfiles/source_Release ]; then curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o testfiles/source_Release; fi # 102B
 if ! [ -f testfiles/Release        ]; then curl http://ftp.debian.org/debian/dists/jessie/Release             -o testfiles/Release       ; fi # 77.3KB
 if ! [ -f testfiles/ChangeLog      ]; then curl http://ftp.debian.org/debian/dists/jessie/ChangeLog           -o testfiles/ChangeLog     ; fi # 2.3MB
@@ -53,10 +52,10 @@ test "test-restore-9-02" "cat Release" "cat testfiles/Release"
 
 cp testfiles/ChangeLog .
 timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
-sleep 40
+sleep 10
 rm ChangeLog
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
-sleep 20
+sleep 10
 test "test-restore-9-03" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1

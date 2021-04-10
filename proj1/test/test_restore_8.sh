@@ -28,8 +28,7 @@ test () {
 
 cd build
 rm -rf 1 2
-rm -rf testfiles
-mkdir testfiles
+mkdir -p testfiles
 if ! [ -f testfiles/source_Release ]; then curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o testfiles/source_Release; fi # 102B
 if ! [ -f testfiles/Release        ]; then curl http://ftp.debian.org/debian/dists/jessie/Release             -o testfiles/Release       ; fi # 77.3KB
 if ! [ -f testfiles/ChangeLog      ]; then curl http://ftp.debian.org/debian/dists/jessie/ChangeLog           -o testfiles/ChangeLog     ; fi # 2.3MB
@@ -50,7 +49,7 @@ echo "Started peer with PID $PID5"
 sleep 1
 
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
-sleep 20
+sleep 10
 test "test-restore-8-01" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1
