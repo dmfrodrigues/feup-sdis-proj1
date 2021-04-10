@@ -34,6 +34,6 @@ public class UnstoreMessage extends MessageWithChunkNo {
         if(getDestinationId() != peer.getId()) return;
         peer.getStorageManager().deleteChunk(getChunkID());
         peer.getFileTable().decrementActualRepDegree(getChunkID());
-        System.out.println("Unstored chunk " + getChunkID());
+        System.out.println(getChunkID() + "\t| Unstored chunk");
     }
 }

@@ -54,10 +54,10 @@ public class PutchunkMessage extends MessageWithBody {
         // If there are enough perceived STORED messages, don't store; just ignore
         if(peer.requireVersion("1.3")) {
             if (numStored >= getReplicationDegree()) {
-                System.out.println("Perceived replication degree is " + numStored + ", ignoring");
+                System.out.println(getChunkID() + "\t| Perceived replication degree is " + numStored + ", ignoring");
                 return;
             } else {
-                System.out.println("Perceived replication degree is " + numStored + ", storing");
+                System.out.println(getChunkID() + "\t| Perceived replication degree is " + numStored + ", storing");
             }
         }
 
@@ -65,7 +65,7 @@ public class PutchunkMessage extends MessageWithBody {
         if(!peer.getStorageManager().hasChunk(chunkId)) {
             if (!peer.getStorageManager().saveChunk(chunkId, getBody()))
                 return;
-            System.out.println("Saved chunk " + chunkId);
+            System.out.println(chunkId + "\t| Saved chunk");
 
             peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);
             peer.getFileTable().incrementActualRepDegree(chunkId);

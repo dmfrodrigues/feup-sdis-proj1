@@ -29,7 +29,7 @@ public class DeletedMessage extends Message{
     @Override
     public void process(Peer peer) {
         if(peer.getId() != initiatorId) return;
-        System.out.println("Peer " + getSenderId() + " deleted " + getFileId());
+        System.out.println(getFileId() + "\t| Peer " + getSenderId() + " deleted file");
 
         peer.getControlSocketHandler().register(this);
     }

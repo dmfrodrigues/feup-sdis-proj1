@@ -23,7 +23,7 @@ public class DeleteFileCallable extends BaseProtocolCallable {
     public Void call() {
 
         if(!peer.getFileTable().hasFile(pathname)){
-            System.out.println("File does not exist in peer table");
+            System.out.println("File " + pathname + " does not exist in peer table");
             return null;
         }
 
