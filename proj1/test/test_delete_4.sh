@@ -60,15 +60,15 @@ sleep 3
 
 kill $PID3 # Stops 3
 
-test "test2-01-1" "timeout $TIMEOUT java TestApp service1 DELETE source_Release" "echo"
+test "test-delete-4-01-1" "timeout $TIMEOUT java TestApp service1 DELETE source_Release" "echo"
 sleep 1
 FILE=3/storage/chunks/8C5A4F80497BC0C4719B9DCE7CCC75C36BCB3938A65FB65F7CC0CA0074279526
-test2 "test2-01-2" "$FILE"
+test2 "test-delete-4-01-2" "$FILE"
 
-test "test2-02-1" "timeout $TIMEOUT java TestApp service1 DELETE Release" "echo"
+test "test-delete-4-02-1" "timeout $TIMEOUT java TestApp service1 DELETE Release" "echo"
 sleep 2
 FILE=3/storage/chunks/14C33F2915CA0D86673BCF9A54BC42F73F8A31E0ED6B3EF0D203EAC500F9047D
-test2 "test2-02-2" "$FILE"
+test2 "test-delete-4-02-2" "$FILE"
 
 timeout $TIMEOUT java TestApp service1 DELETE source_Release
 sleep 1

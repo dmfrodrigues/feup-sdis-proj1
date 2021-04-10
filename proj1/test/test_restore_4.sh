@@ -41,7 +41,7 @@ sleep 2
 rm source_Release
 timeout $TIMEOUT java TestApp service1 RESTORE source_Release
 sleep 2
-test "test-restore-1-01" "cat source_Release" "cat testfiles/source_Release"
+test "test-restore-4-01" "cat source_Release" "cat testfiles/source_Release"
 
 cp testfiles/Release .
 timeout $TIMEOUT java TestApp service1 BACKUP Release 1
@@ -49,7 +49,7 @@ sleep 3
 rm Release
 timeout $TIMEOUT java TestApp service1 RESTORE Release
 sleep 2
-test "test-restore-1-02" "cat Release" "cat testfiles/Release"
+test "test-restore-4-02" "cat Release" "cat testfiles/Release"
 
 cp testfiles/ChangeLog .
 timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
@@ -57,7 +57,7 @@ sleep 40
 rm ChangeLog
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
 sleep 20
-test "test-restore-1-03" "cat ChangeLog" "cat testfiles/ChangeLog"
+test "test-restore-4-03" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1
 kill $PID2

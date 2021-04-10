@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TIMEOUT=100
-VERSION=1.4
+VERSION=1.5
 MC_ADDR=230.0.0.1
 MC_PORT=8888
 MDB_ADDR=230.0.0.2
@@ -41,7 +41,7 @@ sleep 2
 rm source_Release
 timeout $TIMEOUT java TestApp service1 RESTORE source_Release
 sleep 2
-test "test-restore-5-01" "cat source_Release" "cat testfiles/source_Release"
+test "test-restore-10-01" "cat source_Release" "cat testfiles/source_Release"
 
 cp testfiles/Release .
 timeout $TIMEOUT java TestApp service1 BACKUP Release 1
@@ -49,7 +49,7 @@ sleep 3
 rm Release
 timeout $TIMEOUT java TestApp service1 RESTORE Release
 sleep 4
-test "test-restore-5-02" "cat Release" "cat testfiles/Release"
+test "test-restore-10-02" "cat Release" "cat testfiles/Release"
 
 cp testfiles/ChangeLog .
 timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
@@ -57,7 +57,7 @@ sleep 40
 rm ChangeLog
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
 sleep 30
-test "test-restore-5-03" "cat ChangeLog" "cat testfiles/ChangeLog"
+test "test-restore-10-03" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1
 kill $PID2
