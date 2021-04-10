@@ -187,9 +187,8 @@ public class Peer implements PeerInterface {
             return;
         }
         getFileTable().insert(file.getName(), fileChunkIterator.getFileId(), fileChunkIterator.length());
-        Runnable runnable = new BackupRunnable(this, fileChunkIterator, replicationDegree);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        BackupFileCallable callable = new BackupFileCallable(this, fileChunkIterator, replicationDegree);
+        executor.submit(callable);
     }
 
     /**
@@ -200,9 +199,8 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be restored
      */
     public void restore(String pathname) throws FileNotFoundException {
-        Runnable runnable = new RestoreRunnable(this, pathname);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        RestoreFileCallable callable = new RestoreFileCallable(this, pathname);
+        executor.submit(callable);
     }
 
     /**
@@ -211,9 +209,8 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be deleted over all peers
      */
     public void delete(String pathname) {
-        Runnable runnable = new DeleteRunnable(this, pathname);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        DeleteFileCallable callable = new DeleteFileCallable(this, pathname);
+        executor.submit(callable);
     }
 
     /**
@@ -222,24 +219,17 @@ public class Peer implements PeerInterface {
      * @param space_kb  Amount of space, in kilobytes (KB, K=1000)
      */
     public void reclaim(int space_kb) {
-        Runnable runnable = new ReclaimRunnable(this, space_kb);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        ReclaimCallable callable = new ReclaimCallable(this, space_kb);
+        executor.submit(callable);
     }
 
     /**
      * Get state information on the peer.
      */
     public String state() {
-        StateRunnable runnable = new StateRunnable(this, storageManager);
-        Thread thread = new Thread(runnable);
-        thread.start();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return runnable.getStatus();
+        StateCallable callable = new StateCallable(this, storageManager);
+        callable.call();
+        return callable.getStatus();
     }
 
     public void send(Message message) throws IOException {
