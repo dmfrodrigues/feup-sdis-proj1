@@ -9,22 +9,22 @@ import java.util.concurrent.Future;
 
 import static java.lang.Thread.sleep;
 
-public class DeleteRunnable implements Runnable{
+public class DeleteCallable extends BaseProtocolCallable {
 
     private final Peer peer;
     private final String pathname;
 
-    public DeleteRunnable(Peer peer, String pathname){
+    public DeleteCallable(Peer peer, String pathname){
         this.peer = peer;
         this.pathname = pathname;
     }
 
     @Override
-    public void run() {
+    public Void call() {
 
         if(!peer.getFileTable().hasFile(pathname)){
             System.out.println("File does not exist in peer table");
-            return;
+            return null;
         }
 
         DeleteMessage message = new DeleteMessage(peer.getId(),
@@ -45,7 +45,7 @@ public class DeleteRunnable implements Runnable{
             //sleep(1000);
 
             if(peer.getFileTable().getFileStoredByPeers(peer.getFileTable().getFileID(pathname)) == null)
-                return;
+                return null;
 
             int notDeleted = 0;
             try {
@@ -61,5 +61,7 @@ public class DeleteRunnable implements Runnable{
             }
 
         }
+
+        return null;
     }
 }

@@ -18,7 +18,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * @brief Runnable to restore a file.
  */
-public class RestoreRunnable implements Runnable {
+public class RestoreCallable extends BaseProtocolCallable {
     /**
      * Timeout of waiting for a CHUNK response to a GETCHUNK message, in milliseconds.
      */
@@ -46,7 +46,7 @@ public class RestoreRunnable implements Runnable {
      * @param filename  File name of the file to be restored
      * @throws FileNotFoundException    If file is not found
      */
-    public RestoreRunnable(Peer peer, String filename) throws FileNotFoundException {
+    public RestoreCallable(Peer peer, String filename) throws FileNotFoundException {
         this.peer = peer;
         this.filename = filename;
 
@@ -54,7 +54,7 @@ public class RestoreRunnable implements Runnable {
     }
 
     @Override
-    public void run() {
+    public Void call() {
         String fileId = peer.getFileTable().getFileID(filename);
         Integer numberChunks = peer.getFileTable().getNumberChunks(filename);
         for(int i = 0; i < numberChunks; ++i){
@@ -128,5 +128,7 @@ public class RestoreRunnable implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return null;
     }
 }
