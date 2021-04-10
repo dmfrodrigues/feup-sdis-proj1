@@ -28,14 +28,14 @@ public class GetchunkMessage extends MessageWithChunkNo {
 
     @Override
     public void process(Peer peer) {
-        System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
+        System.out.println(getChunkID() + "\t| Peer " + getSenderId() + " requested chunk");
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
         if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
         byte[] chunk;
         try {
             chunk = peer.getStorageManager().getChunk(getChunkID());
         } catch (IOException e) {
-            System.err.println("Failed to ask if this peer has chunk with ID " + getChunkID());
+            System.err.println(getChunkID() + "\t| Failed to ask if this peer has chunk with this ID");
             e.printStackTrace();
             return;
         }
@@ -43,9 +43,9 @@ public class GetchunkMessage extends MessageWithChunkNo {
         try {
             peer.send(message);
         } catch (IOException e) {
-            System.err.println("Failed to answer GetchunkMessage with a ChunkMessage");
+            System.err.println(getChunkID() + "\t| Failed to answer GetchunkMessage with a ChunkMessage");
             e.printStackTrace();
         }
-        System.out.println("Sent chunk " + message.getChunkID());
+        System.out.println(message.getChunkID() + "\t| Sent chunk");
     }
 }

@@ -23,15 +23,15 @@ public class DeleteMessage extends Message {
 
     @Override
     public void process(Peer peer) {
-        System.out.println("Peer " + getSenderId() + " requested file " + getFileId() + " to be deleted");
+        System.out.println(getFileId() + "\t| Peer " + getSenderId() + " requested file to be deleted");
         peer.getStorageManager().deleteFile(this.getFileId());
         // Delete Enhancement
         if(peer.requireVersion("1.1")){
             DeletedMessage message = new DeletedMessage(peer.getId(),
                     getFileId(), getSenderId(), peer.getControlAddress());
             try {
-                System.out.println("Sending Deleted!");
                 peer.send(message);
+                System.out.println(getFileId() + "\t| Sent DELETED");
             } catch (IOException e) {
                 e.printStackTrace();
             }

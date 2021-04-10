@@ -54,11 +54,11 @@ public class RestoreFileCallable extends BaseProtocolCallable {
                 e.printStackTrace();
                 return null;
             }
-            System.out.println("Promise completed, received chunk " + message.getChunkID());
+            System.out.println(message.getChunkID() + "\t| Promise completed, received chunk");
             try {
                 fileChunkOutput.set(i, chunk);
             } catch (IOException e) {
-                System.err.println("Failed to set chunk to file chunk output");
+                System.err.println(message.getChunkID() + "\t| Failed to set chunk to file chunk output");
                 e.printStackTrace();
                 break;
             }

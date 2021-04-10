@@ -30,7 +30,7 @@ public class ReclaimCallable extends BaseProtocolCallable {
                 peer.getFileTable().decrementActualRepDegree(file.getName());
                 try {
                     peer.send(message);
-                    System.out.println("Sent removed");
+                    System.out.println(message.getChunkID() + "\t| Sent REMOVED");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

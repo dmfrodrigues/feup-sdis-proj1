@@ -44,19 +44,19 @@ public class GetchunkTCPMessage extends MessageWithChunkNo {
     @Override
     public void process(Peer peer) {
 
-        System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
+        System.out.println(getChunkID() + "\t| Peer " + getSenderId() + " requested chunk");
 
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
 
         // Restore enhancement
         try {
-            System.out.println("Trying to connect to : "+getHostname()+":"+getPort());
+            System.out.println(getChunkID() + "\t| Trying to connect to : "+getHostname()+":"+getPort());
             Socket socket = new Socket(getHostname(), getPort());
             // send chunk
             OutputStream output = socket.getOutputStream();
             byte[] chunk = peer.getStorageManager().getChunk(getChunkID());
             output.write(chunk);
-            System.out.println("Sent Chunk using TCP");
+            System.out.println(getChunkID() + "\t| Sent Chunk using TCP");
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();
