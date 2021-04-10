@@ -43,6 +43,22 @@ This enhancement could otherwise be made in a way that is less expensive in term
 
 # Restore enhancements
 
+> *If the files are large, this protocol may not be desirable: only one peer needs to receive the chunks, but we are using a multicast channel for sending all the file's chunks. Can you think of a change to the protocol that would eliminate this problem, and yet interoperate with non-initiator peers that implement the protocol described in this section? Your enhancement **must use TCP** to get full credit.*
+
+As per the enhancement statement, TCP is the solution:
+
+- Initially, the initiator peer has to multicast its intention to restore a chunk, and then all peers compete over the multicast channel MDR to send the chunk
+- With the enhancement, the peer creates a TCP socket, multicasts the intention to restore a chunk together with the TCP socket address, and then all peers compete to grab the other end of the TCP connection; the winner transfers the chunk, the others just ignore.
+
+This requires a simple change to the `GETCHUNK` message:
+
+```
+<Version> GETCHUNK <SenderId> <FileId> <ChunkNo> <CRLF>
+<TCPSocketIP>:<TCPSocketPort> <CRLF>
+```
+
+To maintain interoperability, the initiator peer must simultaneously check if the other end of the TCP connection is taken, and listen to MDR, although it should prefer getting the chunk from the TCP connection than from MDR. That is, after a certain wait time it must first check if the TCP connection is in use; if so, the initiator gets the chunk from the TCP connection. After that, it gets the chunk sent through MDR, although it can be immediately discarded if the chunk was already received through TCP; if the TCP connection is empty, then the chunk retrieved from MDR is used.
+
 # Deletion enhancements
 
 > *If a peer that backs up some chunks of the file is not running at the time the initiator peer sends a `DELETE` message for that file, the space used by these chunks will never be reclaimed. Can you think of a change to the protocol, possibly including additional messages, that would allow to reclaim storage space even in that event?*
