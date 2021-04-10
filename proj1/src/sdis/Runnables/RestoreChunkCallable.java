@@ -1,5 +1,6 @@
 package sdis.Runnables;
 
+import sdis.Exceptions.RestoreProtocolException;
 import sdis.Messages.GetchunkMessage;
 import sdis.Messages.GetchunkTCPMessage;
 import sdis.Peer;
@@ -36,7 +37,7 @@ public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
         this.message = message;
     }
 
-    public byte[] call() {
+    public byte[] call() throws RestoreProtocolException {
         byte[] chunk = null;
 
         for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
@@ -101,6 +102,8 @@ public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
 
 
         }
+
+        if(chunk == null) throw new RestoreProtocolException("Could not restore chunk " + message.getChunkID());
 
         return chunk;
     }

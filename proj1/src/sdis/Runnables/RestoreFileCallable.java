@@ -1,5 +1,6 @@
 package sdis.Runnables;
 
+import sdis.Exceptions.RestoreProtocolException;
 import sdis.Messages.GetchunkMessage;
 import sdis.Messages.GetchunkTCPMessage;
 import sdis.Peer;
@@ -46,7 +47,13 @@ public class RestoreFileCallable extends BaseProtocolCallable {
         for(int i = 0; i < numberChunks; ++i){
             GetchunkMessage message = new GetchunkMessage(peer.getId(), fileId, i, peer.getControlAddress());
             RestoreChunkCallable callable = new RestoreChunkCallable(peer, message);
-            byte[] chunk = callable.call();
+            byte[] chunk;
+            try {
+                chunk = callable.call();
+            } catch (RestoreProtocolException e) {
+                e.printStackTrace();
+                return null;
+            }
             System.out.println("Promise completed, received chunk " + message.getChunkID());
             try {
                 fileChunkOutput.set(i, chunk);
