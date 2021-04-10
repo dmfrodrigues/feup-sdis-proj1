@@ -19,7 +19,7 @@ public class BackupFileCallable extends BaseProtocolCallable {
      * But most importantly, it is to conserve memory as each running chunk backup future requires its chunk while
      * running, which can exhaust memory.
      */
-    private final static int MAX_FUTURE_QUEUE_SIZE = 10;
+    private final int MAX_FUTURE_QUEUE_SIZE;
 
     private final Peer peer;
     private final FileChunkIterator fileChunkIterator;
@@ -29,6 +29,8 @@ public class BackupFileCallable extends BaseProtocolCallable {
         this.peer = peer;
         this.fileChunkIterator = fileChunkIterator;
         this.replicationDegree = replicationDegree;
+
+        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 10 : 1);
     }
 
     @Override
