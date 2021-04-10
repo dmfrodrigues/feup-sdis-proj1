@@ -178,16 +178,17 @@ public class Peer implements PeerInterface {
      * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
      */
     public void backup(String pathname, int replicationDegree) throws IOException {
+        File file = new File(pathname);
         FileChunkIterator fileChunkIterator;
         try {
-            fileChunkIterator = new FileChunkIterator(this, new File(pathname));
+            fileChunkIterator = new FileChunkIterator(file);
         } catch (FileNotFoundException e) {
             System.err.println("File " + pathname + " not found");
             return;
         }
-        Runnable runnable = new BackupRunnable(this, fileChunkIterator, replicationDegree);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        getFileTable().insert(file.getName(), fileChunkIterator.getFileId(), fileChunkIterator.length());
+        BackupFileCallable callable = new BackupFileCallable(this, fileChunkIterator, replicationDegree);
+        executor.submit(callable);
     }
 
     /**
@@ -198,9 +199,8 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be restored
      */
     public void restore(String pathname) throws FileNotFoundException {
-        Runnable runnable = new RestoreRunnable(this, pathname);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        RestoreFileCallable callable = new RestoreFileCallable(this, pathname);
+        executor.submit(callable);
     }
 
     /**
@@ -209,9 +209,8 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be deleted over all peers
      */
     public void delete(String pathname) {
-        Runnable runnable = new DeleteRunnable(this, pathname);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        DeleteFileCallable callable = new DeleteFileCallable(this, pathname);
+        executor.submit(callable);
     }
 
     /**
@@ -220,24 +219,17 @@ public class Peer implements PeerInterface {
      * @param space_kb  Amount of space, in kilobytes (KB, K=1000)
      */
     public void reclaim(int space_kb) {
-        Runnable runnable = new ReclaimRunnable(this, space_kb);
-        Thread thread = new Thread(runnable);
-        thread.start();
+        ReclaimCallable callable = new ReclaimCallable(this, space_kb);
+        executor.submit(callable);
     }
 
     /**
      * Get state information on the peer.
      */
     public String state() {
-        StateRunnable runnable = new StateRunnable(this, storageManager);
-        Thread thread = new Thread(runnable);
-        thread.start();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return runnable.getStatus();
+        StateCallable callable = new StateCallable(this, storageManager);
+        callable.call();
+        return callable.getStatus();
     }
 
     public void send(Message message) throws IOException {
@@ -280,7 +272,7 @@ public class Peer implements PeerInterface {
                     socket.receive(packet);
                     Message message = messageFactory.factoryMethod(packet);
                     if(message.getSenderId() != peer.getId())
-                        handle(message);
+                        getPeer().getExecutor().submit(() -> handle(message));
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -329,6 +321,8 @@ public class Peer implements PeerInterface {
             )) {
                 message.process(getPeer());
             }else if(message instanceof DeletedMessage && getPeer().requireVersion("1.1"))
+                message.process(getPeer());
+            else if(message instanceof GetchunkTCPMessage && getPeer().requireVersion("1.4"))
                 message.process(getPeer());
         }
 

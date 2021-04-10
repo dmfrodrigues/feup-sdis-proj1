@@ -7,13 +7,13 @@ import sdis.Storage.FileTable;
 import java.io.File;
 import java.util.Objects;
 
-public class StateRunnable implements Runnable{
+public class StateCallable extends BaseProtocolCallable {
 
     private final Peer peer;
     private final ChunkStorageManager storageManager;
     private String status;
 
-    public StateRunnable(Peer peer, ChunkStorageManager storageManager){
+    public StateCallable(Peer peer, ChunkStorageManager storageManager){
         this.peer = peer;
         this.storageManager = storageManager;
     }
@@ -71,11 +71,13 @@ public class StateRunnable implements Runnable{
     }
 
     @Override
-    public void run() {
+    public Void call() {
         status = getFilesInitiatedInfo();
         status +="................................\n";
         status += getStoredChunksInfo();
         status +="................................\n";
         status += getPeerStorageInfo();
+
+        return null;
     }
 }
