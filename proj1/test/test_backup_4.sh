@@ -24,10 +24,8 @@ test () {
     fi
     echo $expected > expected.txt
     echo $output > output.txt
-    if [ "$output" != "$expected" ]; then
+    if ! diff expected.txt output.txt ; then
         echo -e "\e[1m\e[31m[Failed]\e[0m: expected different from output"
-        echo $expected > expected.txt
-        echo $output > output.txt
         kill $PID1
         kill $PID2
         kill $PID3
