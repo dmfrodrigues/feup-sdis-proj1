@@ -25,6 +25,11 @@ public class FileTable implements Serializable {
      */
     public static Set<String> pendingDelete = ConcurrentHashMap.newKeySet();
 
+    /**
+     * Map of peers and their files pending to be deleted.
+     */
+    public static Map<Integer, HashSet<String>> peersPendingDelete = new ConcurrentHashMap<>();
+
     public FileTable(String path) {
         table_path = path + "/fileID.ser";
     }
@@ -116,18 +121,22 @@ public class FileTable implements Serializable {
         return fileStoredByPeers.get(fileID);
     }
 
-    public synchronized void addPendingDelete(String path){
-        pendingDelete.add(path);
+    public synchronized void addPeerPendingDelete(int peer, String pathname){
+        HashSet<String> set = peersPendingDelete.getOrDefault(peer, new HashSet<>());
+        set.add(pathname);
+        peersPendingDelete.put(peer, set);
         save();
     }
 
-    public synchronized void removePendingDelete(String path){
-        pendingDelete.remove(path);
-        save();
+    public Map<Integer, HashSet<String>> getPeersPendingDelete(){
+        return peersPendingDelete;
     }
 
-    public Set<String> getPendingDelete(){
-        return pendingDelete;
+    public synchronized void removePathFromPeersPendingDelete(String pathname){
+        for(HashSet<String> set: peersPendingDelete.values()){
+            set.remove(pathname);
+        }
+        save();
     }
 
     public void save(){
@@ -140,7 +149,7 @@ public class FileTable implements Serializable {
             os.writeObject(chunkDesiredRepDegree);
             os.writeObject(fileDesiredRepDegree);
             os.writeObject(fileStoredByPeers);
-            os.writeObject(pendingDelete);
+            os.writeObject(peersPendingDelete);
             os.close();
             o.close();
         } catch (IOException e) {
@@ -160,7 +169,7 @@ public class FileTable implements Serializable {
             chunkDesiredRepDegree = (Map<String, Integer>) is.readObject();
             fileDesiredRepDegree = (Map<String, Integer>) is.readObject();
             fileStoredByPeers = (Map<String, HashSet<Integer>>) is.readObject();
-            pendingDelete = (Set<String>) is.readObject();
+            peersPendingDelete = (Map<Integer, HashSet<String>>) is.readObject();
             i.close();
             is.close();
         } catch (IOException | ClassNotFoundException ignored) {}

@@ -273,6 +273,18 @@ public class Peer implements PeerInterface {
                     Message message = messageFactory.factoryMethod(packet);
                     if(message.getSenderId() != peer.getId())
                         getPeer().getExecutor().submit(() -> handle(message));
+
+                    if(peer.getFileTable().getPeersPendingDelete().containsKey(message.getSenderId())){
+                        Iterator<String> i = peer.getFileTable().getPeersPendingDelete().get(message.getSenderId()).iterator();
+                        while(i.hasNext()) {
+                                String path = i.next();
+                                i.remove();
+                                peer.getFileTable().removePathFromPeersPendingDelete(path);
+                                System.out.println("Trying to delete " + path + " again");
+                                peer.delete(path);
+                        }
+                    }
+
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -301,20 +313,6 @@ public class Peer implements PeerInterface {
                 message instanceof DeleteMessage
             ) {
                 message.process(getPeer());
-
-
-                //TODO
-                if(message.getSenderId().equals("pending peer id")) ;
-                // Starts the delete process for one of the pending files
-                if(!getPeer().getFileTable().getPendingDelete().isEmpty()) {
-                    System.out.println(getPeer().getFileTable().getPendingDelete());
-                    Iterator<String> i = getPeer().getFileTable().getPendingDelete().iterator();
-                    if(!i.hasNext()) return;
-                    String path = i.next();
-                    i.remove();
-                    System.out.println("Trying to delete " + path + " again");
-                    getPeer().delete(path);
-                }
             }
             if(getPeer().requireVersion("1.2") && (
                 message instanceof UnstoreMessage
