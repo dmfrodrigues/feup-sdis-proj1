@@ -5,6 +5,6 @@ package sdis.Runnables;
  *
  * Should, under no circumstance, throw any exceptions.
  */
-public abstract class BaseProtocolCallable extends ProtocolCallable {
+public abstract class BaseProtocolCallable extends ProtocolCallable<Void> {
     public abstract Void call();
 }

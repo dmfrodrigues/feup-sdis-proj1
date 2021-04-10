@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class BackupChunkCallable extends ProtocolCallable {
+public class BackupChunkCallable extends ProtocolCallable<Void> {
     /**
      * Time to wait before resending a backup request, in milliseconds.
      */
