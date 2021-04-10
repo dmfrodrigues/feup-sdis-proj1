@@ -41,7 +41,7 @@ sleep 1
 
 cp testfiles/ChangeLog .
 timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
-sleep 40
+sleep 10
 rm ChangeLog
 
 timeout $TIMEOUT java PeerDriver $VERSION 5 service5 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID5=$!
