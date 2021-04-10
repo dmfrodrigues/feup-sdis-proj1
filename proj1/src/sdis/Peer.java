@@ -199,7 +199,7 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be restored
      */
     public void restore(String pathname) throws FileNotFoundException {
-        RestoreCallable callable = new RestoreCallable(this, pathname);
+        RestoreFileCallable callable = new RestoreFileCallable(this, pathname);
         executor.submit(callable);
     }
 
