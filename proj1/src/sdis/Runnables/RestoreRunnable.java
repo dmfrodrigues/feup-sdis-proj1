@@ -1,6 +1,7 @@
 package sdis.Runnables;
 
 import sdis.Messages.GetchunkMessage;
+import sdis.Messages.GetchunkTCPMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkOutput;
 
@@ -68,7 +69,7 @@ public class RestoreRunnable implements Runnable {
                         serverSocket.setSoTimeout((int) SOCKET_TIMEOUT_MILLIS);
 
                         System.out.println("listening on address: " + InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort() );
-                        peer.send(new GetchunkMessage(peer.getId(), fileId, i, InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort(), peer.getControlAddress()));
+                        peer.send(new GetchunkTCPMessage(peer.getId(), fileId, i, InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort(), peer.getControlAddress()));
                         Socket socket = serverSocket.accept();
                         socket.setSoTimeout((int) SOCKET_TIMEOUT_MILLIS);
 

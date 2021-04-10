@@ -30,7 +30,7 @@ mkdir testfiles
 curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o testfiles/source_Release  # 102B
 curl http://ftp.debian.org/debian/dists/jessie/Release             -o testfiles/Release         # 77.3KB
 curl http://ftp.debian.org/debian/dists/jessie/ChangeLog           -o testfiles/ChangeLog       # 2.3MB
-timeout $TIMEOUT java PeerDriver $VERSION 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID1=$!
+timeout $TIMEOUT java PeerDriver $VERSION 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT & PID1=$!
 timeout $TIMEOUT java PeerDriver $VERSION 2 service2 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID2=$!
 echo "Started peers with PIDs $PID1, $PID2"
 sleep 1

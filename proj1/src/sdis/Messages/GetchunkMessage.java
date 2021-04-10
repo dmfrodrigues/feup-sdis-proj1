@@ -13,73 +13,25 @@ public class GetchunkMessage extends MessageWithChunkNo {
      */
     private static final int RESPONSE_TIMEOUT_MILLIS = 400;
 
-    /**
-     * Address used in version 1.3, IP:PORT
-     */
-    private String address = null;
-
     public GetchunkMessage(int senderId, String fileId, int chunkNo, InetSocketAddress inetSocketAddress){
         super("1.0", "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
     }
 
-    public GetchunkMessage(int senderId, String fileId, int chunkNo, String address, InetSocketAddress inetSocketAddress){
-        super("1.4", "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
-        this.address = address;
-    }
-
     public byte[] getBytes(){
-        if(getVersion().equals("1.4")){
-            byte[] header = super.getBytes();
-            byte[] term = ("\r\n"+ address +"\r\n").getBytes();
-            byte[] ret = new byte[header.length + term.length];
-            System.arraycopy(header       , 0, ret, 0, header.length);
-            System.arraycopy(term         , 0, ret, header.length, term.length);
-            return ret;
-        }else{
-            byte[] header = super.getBytes();
-            byte[] term = ("\r\n\r\n").getBytes();
-            byte[] ret = new byte[header.length + term.length];
-            System.arraycopy(header       , 0, ret, 0, header.length);
-            System.arraycopy(term         , 0, ret, header.length, term.length);
-            return ret;
-        }
-    }
-
-    public String getHostname(){
-        return address.split(":")[0];
-    }
-
-    private int getPort(){
-        return Integer.parseInt(address.split(":")[1]);
+        byte[] header = super.getBytes();
+        byte[] term = ("\r\n\r\n").getBytes();
+        byte[] ret = new byte[header.length + term.length];
+        System.arraycopy(header       , 0, ret, 0, header.length);
+        System.arraycopy(term         , 0, ret, header.length, term.length);
+        return ret;
     }
 
     @Override
     public void process(Peer peer) {
-
-
         System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
-        if(!peer.requireVersion(getVersion())) return;
 
         byte[] chunk;
-
-        // Restore enhancement
-        if(getVersion().equals("1.4")){
-            try {
-                System.out.println("Trying to connect to : "+getHostname()+":"+getPort());
-                Socket socket = new Socket(getHostname(), getPort());
-                // send chunk
-                OutputStream output = socket.getOutputStream();
-                chunk = peer.getStorageManager().getChunk(getChunkID());
-                output.write(chunk);
-                System.out.println("Sent Chunk");
-                socket.close();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return;
-        }
 
         if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
 

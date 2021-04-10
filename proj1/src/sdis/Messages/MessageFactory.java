@@ -22,13 +22,6 @@ public class MessageFactory {
         int senderId = Integer.parseInt(headerSplit[2]);
         String fileId = headerSplit[3];
 
-        String[] headers = (new String(data)).split("\r\n");
-        String address = null;
-
-        if(headers.length>1){
-            address = headers[1].trim();
-        }
-
         // Messages without body
         switch(messageType) {
             case "DELETE": return new DeleteMessage(senderId, fileId, inetSocketAddress);
@@ -38,13 +31,11 @@ public class MessageFactory {
 
         int chunkNo = Integer.parseInt(headerSplit[4]);
         switch (messageType) {
-            case "STORED": return new StoredMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
-            case "GETCHUNK":
-                if(address==null)
-                            return new GetchunkMessage(senderId, fileId, chunkNo, inetSocketAddress);
-                else        return new GetchunkMessage(senderId, fileId, chunkNo, address, inetSocketAddress);
+            case "STORED":  return new StoredMessage(version, senderId, fileId, chunkNo, inetSocketAddress);
+            case "GETCHUNK":return new GetchunkMessage(senderId, fileId, chunkNo, inetSocketAddress);
             case "REMOVED": return new RemovedMessage(senderId, fileId, chunkNo, inetSocketAddress);
             case "UNSTORE": return new UnstoreMessage(senderId, fileId, chunkNo, Integer.parseInt(headerSplit[5]), inetSocketAddress);
+            case "GETCHUNKTCP": return new GetchunkTCPMessage(senderId, fileId, chunkNo, headerSplit[5], inetSocketAddress);
             default: break;
         }
 
