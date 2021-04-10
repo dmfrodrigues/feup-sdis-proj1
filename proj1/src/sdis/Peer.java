@@ -209,7 +209,7 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be deleted over all peers
      */
     public void delete(String pathname) {
-        DeleteCallable callable = new DeleteCallable(this, pathname);
+        DeleteFileCallable callable = new DeleteFileCallable(this, pathname);
         executor.submit(callable);
     }
 

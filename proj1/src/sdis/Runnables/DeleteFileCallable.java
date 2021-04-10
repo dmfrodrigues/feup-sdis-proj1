@@ -9,12 +9,12 @@ import java.util.concurrent.Future;
 
 import static java.lang.Thread.sleep;
 
-public class DeleteCallable extends BaseProtocolCallable {
+public class DeleteFileCallable extends BaseProtocolCallable {
 
     private final Peer peer;
     private final String pathname;
 
-    public DeleteCallable(Peer peer, String pathname){
+    public DeleteFileCallable(Peer peer, String pathname){
         this.peer = peer;
         this.pathname = pathname;
     }
