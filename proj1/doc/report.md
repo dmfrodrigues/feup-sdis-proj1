@@ -1,5 +1,7 @@
 This report addresses the enhancements made to the first project of the course SDIS (Distributed Systems) at the Faculty of Engineering of the University of Porto (FEUP). The guidelines are available [**here**](https://web.fe.up.pt/~pfs/aulas/sd2021/projs/proj1/proj1.html).
 
+Enhancements are incremental; i.e., if an enhancement was implemented in a certain version, then it is used in that version and in all posterior versions.
+
 # Backup enhancements
 
 > *This scheme can deplete the backup space rather rapidly, and cause too much activity on the nodes once that space is full. Can you think of an alternative scheme that ensures the desired replication degree, avoids these problems, and, nevertheless, can interoperate with peers that execute the chunk backup protocol described above?*
@@ -33,6 +35,7 @@ For that, we send over MC an `UNSTORE` message, with format:
 ```
 
 which means the initiator peer with ID `<SenderId>` is notifying the peer with ID `<DestinationId>` that it should unstore a certain chunk.
+This enhancement is implemented in version 1.1.
 
 Curiously, the previous enhancement improves the performance of this enhancement, as it first reduces the number of peers that backed-up the file without needing to, and this enhancement just solves those cases where latency is too high.
 
