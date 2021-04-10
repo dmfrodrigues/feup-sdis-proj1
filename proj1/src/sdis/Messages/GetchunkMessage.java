@@ -58,7 +58,8 @@ public class GetchunkMessage extends MessageWithChunkNo {
 
 
         System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
-        if(!peer.getStorageManager().hasChunk(getChunkID()) || !peer.requireVersion(getVersion())) return;
+        if(!peer.getStorageManager().hasChunk(getChunkID())) return;
+        if(!peer.requireVersion(getVersion())) return;
 
         byte[] chunk;
 
