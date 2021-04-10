@@ -1,30 +1,36 @@
 package sdis.Runnables;
 
-import sdis.Exceptions.RestoreProtocolException;
 import sdis.Messages.GetchunkMessage;
-import sdis.Messages.GetchunkTCPMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkOutput;
+import sdis.Utils.Pair;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.*;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * @brief Runnable to restore a file.
  */
 public class RestoreFileCallable extends BaseProtocolCallable {
+    /**
+     * Maximum amount of chunk backup futures that can be running at a given time.
+     *
+     * This also serves the purpose of avoiding restore from taking too many threads.
+     * But most importantly, it is to conserve memory as each running chunk restoring future requires its chunk while
+     * running, which can exhaust memory.
+     */
+    private final int MAX_FUTURE_QUEUE_SIZE;
 
     private final Peer peer;
     private final String filename;
 
     private final FileChunkOutput fileChunkOutput;
+    private final String fileId;
 
     /**
      * @brief Construct sdis.Runnables.RestoreRunnable.
@@ -36,33 +42,37 @@ public class RestoreFileCallable extends BaseProtocolCallable {
     public RestoreFileCallable(Peer peer, String filename) throws FileNotFoundException {
         this.peer = peer;
         this.filename = filename;
-
         fileChunkOutput = new FileChunkOutput(new File(filename));
+        fileId = peer.getFileTable().getFileID(filename);
+
+        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 10 : 1);
     }
 
     @Override
     public Void call() {
-        String fileId = peer.getFileTable().getFileID(filename);
         Integer numberChunks = peer.getFileTable().getNumberChunks(filename);
+
+        Queue<Future<Pair<Integer,byte[]>>> futureList = new LinkedList<>();
+
         for(int i = 0; i < numberChunks; ++i){
+            // Resolve the futures that are already done
+            while(!futureList.isEmpty() && futureList.peek().isDone()){
+                if (!popFutureList(futureList.remove())) return null;
+            }
+            // If the queue still has too many elements, pop the first
+            while(futureList.size() >= MAX_FUTURE_QUEUE_SIZE) {
+                if (!popFutureList(futureList.remove())) return null;
+            }
+            // Add new future
             GetchunkMessage message = new GetchunkMessage(peer.getId(), fileId, i, peer.getControlAddress());
-            RestoreChunkCallable callable = new RestoreChunkCallable(peer, message);
-            byte[] chunk;
-            try {
-                chunk = callable.call();
-            } catch (RestoreProtocolException e) {
-                e.printStackTrace();
-                return null;
-            }
-            System.out.println(message.getChunkID() + "\t| Promise completed, received chunk");
-            try {
-                fileChunkOutput.set(i, chunk);
-            } catch (IOException e) {
-                System.err.println(message.getChunkID() + "\t| Failed to set chunk to file chunk output");
-                e.printStackTrace();
-                break;
-            }
+            RestoreChunkCallable restoreChunkCallable = new RestoreChunkCallable(peer, message);
+            futureList.add(peer.getExecutor().submit(restoreChunkCallable));
         }
+        // Empty the futures list
+        while(!futureList.isEmpty()) {
+            if (!popFutureList(futureList.remove())) return null;
+        }
+
         try {
             fileChunkOutput.close();
         } catch (IOException e) {
@@ -70,5 +80,21 @@ public class RestoreFileCallable extends BaseProtocolCallable {
         }
 
         return null;
+    }
+
+    private boolean popFutureList(Future<Pair<Integer, byte[]>> f) {
+        try {
+            Pair<Integer,byte[]> chunk = f.get();
+            fileChunkOutput.set(chunk.first, chunk.second);
+        } catch (InterruptedException | ExecutionException e) {
+            System.err.println(fileId + " | Aborting restore of file");
+            e.printStackTrace();
+            return false;
+        } catch (IOException e) {
+            System.err.println(fileId + " | Failed to save chunk to fileChunkOutput");
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 }
