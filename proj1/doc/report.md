@@ -44,3 +44,20 @@ This enhancement could otherwise be made in a way that is less expensive in term
 # Restore enhancements
 
 # Deletion enhancements
+
+> *If a peer that backs up some chunks of the file is not running at the time the initiator peer sends a `DELETE` message for that file, the space used by these chunks will never be reclaimed. Can you think of a change to the protocol, possibly including additional messages, that would allow to reclaim storage space even in that event?*
+
+The initiator peer of a certain file knows which peers stored chunks of that file, since it can remember which peers answered to its `PUTCHUNK` with `STORED`.
+Thus, when that initiator peer requests the service to delete a file, if the initiator peer can perceive who got the `DELETE` message it can then remember which peers still have chunks of the file but have not yet deleted them, and the next time the initiator realizes one of those peers is online it will resend the `DELETE`.
+
+For that, we send over MC a `DELETED` message, with format:
+
+```
+<Version> DELETED <SenderId> <FileId> <InitiatorId> <CRLF><CRLF>
+```
+which means the peer with ID `<senderId>` is notifying the whole service (but particularly the initiator peer of the referred file) that it deleted all chunks of a certain file.
+This message is to be sent by a peer if it received a `DELETE` message and successfully deleted the chunks of the corresponding file.
+
+This enhancement was implemented in version 1.1.
+
+An additional possibility is for a peer that just went online to multicast an `ONLINE` message, thus allowing initiator peers that know that peer has not yet deleted a file they already requested to be deleted to realise said peer is online, and take action sooner. This was deemed unnecessary, as that peer will be noticed sooner or latter as most communications are multicast.
