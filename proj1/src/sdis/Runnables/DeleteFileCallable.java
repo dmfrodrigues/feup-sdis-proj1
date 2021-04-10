@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static java.lang.Thread.sleep;
-
 public class DeleteFileCallable extends BaseProtocolCallable {
 
     private final Peer peer;
@@ -42,7 +40,6 @@ public class DeleteFileCallable extends BaseProtocolCallable {
         if(peer.requireVersion("1.1")){
             // wait for DELETED messages, returns number of deleted messages
             Future<Integer> f = peer.getControlSocketHandler().checkDeleted(message, 1000);
-            //sleep(1000);
 
             if(peer.getFileTable().getFileStoredByPeers(peer.getFileTable().getFileID(pathname)) == null)
                 return null;
@@ -54,10 +51,13 @@ public class DeleteFileCallable extends BaseProtocolCallable {
                 e.printStackTrace();
             }
             if(notDeleted > 0){
-                peer.getFileTable().addPendingDelete(pathname);
+                for(Integer i: peer.getFileTable().getFileStoredByPeers(peer.getFileTable().getFileID(pathname))){
+                    peer.getFileTable().addPeerPendingDelete(i, pathname);
+                }
+
             }
             else{
-                peer.getFileTable().removePendingDelete(pathname);
+                peer.getFileTable().removePathFromPeersPendingDelete(pathname);
             }
 
         }
