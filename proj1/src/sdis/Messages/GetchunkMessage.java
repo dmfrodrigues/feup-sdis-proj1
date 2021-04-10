@@ -28,7 +28,7 @@ public class GetchunkMessage extends MessageWithChunkNo {
     }
 
     public byte[] getBytes(){
-        if(getVersion().equals("1.0")){
+        if(!getVersion().equals("1.4")){
             byte[] header = super.getBytes();
             byte[] term = ("\r\n\r\n").getBytes();
             byte[] ret = new byte[header.length + term.length];
