@@ -48,16 +48,17 @@ This enhancement could otherwise be made in a way that is less expensive in term
 As per the enhancement statement, TCP is the solution:
 
 - Initially, the initiator peer has to multicast its intention to restore a chunk, and then all peers compete over the multicast channel MDR to send the chunk
-- With the enhancement, the peer creates a TCP socket, multicasts the intention to restore a chunk together with the TCP socket address, and then all peers compete to grab the other end of the TCP connection; the winner transfers the chunk, the others just ignore.
+- With the enhancement, the peer creates a TCP socket, multicasts the intention to restore a chunk together with the TCP socket address, and then all peers compete to grab the other end of the TCP connection; the winner transfers the chunk, the others just ignore. If noone connects to the TCP socket, the initiator falls back to the original solution.
 
-This requires a simple change to the `GETCHUNK` message:
+This requires a new message `GETCHUNKTCP` so we have a guarantee other implementations will ignore it:
 
 ```
-<Version> GETCHUNK <SenderId> <FileId> <ChunkNo> <CRLF>
-<TCPSocketIP>:<TCPSocketPort> <CRLF>
+<Version> GETCHUNKTCP <SenderId> <FileId> <ChunkNo> <IP>:<Port> <CRLF><CRLF>
 ```
 
-To maintain interoperability, the initiator peer must simultaneously check if the other end of the TCP connection is taken, and listen to MDR, although it should prefer getting the chunk from the TCP connection than from MDR. That is, after a certain wait time it must first check if the TCP connection is in use; if so, the initiator gets the chunk from the TCP connection. After that, it gets the chunk sent through MDR, although it can be immediately discarded if the chunk was already received through TCP; if the TCP connection is empty, then the chunk retrieved from MDR is used.
+which instructs all peers that have the requested chunk to try to connect to the socket with IP `<IP>` and port `<Port>`, and send the chunk.
+
+The initiator will first multicast a `GETCHUNKTCP` message and try to get the chunk from the TCP connection. To maintain interoperability, the initiator must use the original protocol after it fails to find any peer that is able to connect to the TCP socket.
 
 # Deletion enhancements
 
