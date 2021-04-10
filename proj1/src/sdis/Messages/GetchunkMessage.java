@@ -30,11 +30,8 @@ public class GetchunkMessage extends MessageWithChunkNo {
     public void process(Peer peer) {
         System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
-
-        byte[] chunk;
-
         if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
-
+        byte[] chunk;
         try {
             chunk = peer.getStorageManager().getChunk(getChunkID());
         } catch (IOException e) {
