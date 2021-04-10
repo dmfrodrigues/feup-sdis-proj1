@@ -178,13 +178,15 @@ public class Peer implements PeerInterface {
      * @param replicationDegree Replication degree (number of copies of each file chunk over all machines in the network)
      */
     public void backup(String pathname, int replicationDegree) throws IOException {
+        File file = new File(pathname);
         FileChunkIterator fileChunkIterator;
         try {
-            fileChunkIterator = new FileChunkIterator(this, new File(pathname));
+            fileChunkIterator = new FileChunkIterator(file);
         } catch (FileNotFoundException e) {
             System.err.println("File " + pathname + " not found");
             return;
         }
+        getFileTable().insert(file.getName(), fileChunkIterator.getFileId(), fileChunkIterator.length());
         Runnable runnable = new BackupRunnable(this, fileChunkIterator, replicationDegree);
         Thread thread = new Thread(runnable);
         thread.start();
