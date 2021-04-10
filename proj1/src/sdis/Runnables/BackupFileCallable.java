@@ -4,7 +4,9 @@ import sdis.Messages.PutchunkMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkIterator;
 
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.ListIterator;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -35,26 +37,43 @@ public class BackupFileCallable extends BaseProtocolCallable {
 
         peer.getFileTable().setFileDesiredRepDegree(fileChunkIterator.getFileId(), replicationDegree);
 
-        Queue<Future<Void>> futureQueue = new LinkedList<>();
+        LinkedList<Future<Void>> futureList = new LinkedList<>();
 
         for(int i = 0; i < n; ++i){
-            while(futureQueue.size() >= MAX_FUTURE_QUEUE_SIZE) {
+            // Resolve the futures that are already done
+            Iterator<Future<Void>> it = futureList.iterator();
+            while(it.hasNext()){
+                Future<Void> f = it.next();
+                if(!f.isDone()) continue;
+                it.remove();
                 try {
-                    futureQueue.remove().get();
+                    futureList.remove().get();
                 } catch (InterruptedException | ExecutionException e) {
                     System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
                     e.printStackTrace();
                     return null;
                 }
             }
+            // If the queue still has too many elements, pop the first
+            while(futureList.size() >= MAX_FUTURE_QUEUE_SIZE) {
+                try {
+                    futureList.remove().get();
+                } catch (InterruptedException | ExecutionException e) {
+                    System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+            // Add new future
             byte[] chunk = fileChunkIterator.next();
             PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
             BackupChunkCallable backupChunkCallable = new BackupChunkCallable(peer, message, replicationDegree);
-            futureQueue.add(peer.getExecutor().submit(backupChunkCallable));
+            futureList.add(peer.getExecutor().submit(backupChunkCallable));
         }
-        while(!futureQueue.isEmpty()) {
+        // Empty the futures list
+        while(!futureList.isEmpty()) {
             try {
-                futureQueue.remove().get();
+                futureList.remove().get();
             } catch (InterruptedException | ExecutionException e) {
                 System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
                 e.printStackTrace();
