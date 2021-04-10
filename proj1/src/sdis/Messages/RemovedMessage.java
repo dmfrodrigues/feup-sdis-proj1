@@ -75,7 +75,7 @@ public class RemovedMessage extends MessageWithChunkNo {
                 Future<Integer> f = peer.getControlSocketHandler().checkStored(message, wait_millis);
                 try {
                     peer.send(message);
-                    System.out.println("    Sent chunk " + getChunkID());
+                    System.out.println(getChunkID() + "\t| Sent chunk");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -83,11 +83,11 @@ public class RemovedMessage extends MessageWithChunkNo {
                     numStored = f.get();
                 } catch (InterruptedException | ExecutionException e) {
                     f.cancel(true);
-                    System.err.println("checkStored future failed; aborting");
+                    System.err.println(getChunkID() + "\t| checkStored future failed; aborting");
                     e.printStackTrace();
                     return;
                 }
-                System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
+                System.out.println(message.getChunkID() + "\t| Perceived replication degree is " + numStored);
                 attempts++;
                 wait_millis *= 2;
             } while(numStored < replicationDegree && attempts < ATTEMPTS);

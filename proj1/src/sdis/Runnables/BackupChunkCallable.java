@@ -43,21 +43,21 @@ public class BackupChunkCallable extends ProtocolCallable<Void> {
             Future<Set<Integer>> f = peer.getControlSocketHandler().checkWhichPeersStored(message, wait_millis);
             try {
                 peer.send(message);
-                System.out.println("Sent chunk " + message.getChunkID());
+                System.out.println(message.getChunkID() + "\t| Sent chunk");
             } catch (IOException e) {
-                System.err.println("Failed to send chunk" + message.getChunkID());
+                System.err.println(message.getChunkID() + "\t| Failed to send chunk");
                 e.printStackTrace();
                 continue;
             }
             try {
                 peersThatStored = f.get();
             } catch (InterruptedException | ExecutionException e) {
-                System.err.println("checkStored future failed; ignoring");
+                System.err.println(message.getChunkID() + "\t| checkStored future failed; ignoring");
                 e.printStackTrace();
                 continue;
             }
             numStored = peersThatStored.size();
-            System.out.println("Perceived replication degree of " + message.getChunkID() + " is " + numStored);
+            System.out.println(message.getChunkID() + "\t| Perceived replication degree is " + numStored);
             attempts++;
             wait_millis *= 2;
         } while(numStored < replicationDegree && attempts < ATTEMPTS);
@@ -69,14 +69,14 @@ public class BackupChunkCallable extends ProtocolCallable<Void> {
         if(peer.requireVersion("1.2")) {
             if (numStored > replicationDegree) {
                 int numUnstoreMessages = peersThatStored.size() - replicationDegree;
-                System.out.println("About to send " + numUnstoreMessages + " UNSTORE messages");
+                System.out.println(message.getChunkID() + "\t| About to send " + numUnstoreMessages + " UNSTORE messages");
                 Iterator<Integer> it = peersThatStored.iterator();
                 for (int j = 0; j < numUnstoreMessages; ++j) {
                     UnstoreMessage m = new UnstoreMessage(peer.getId(), message.getFileId(), message.getChunkNo(), it.next(), peer.getControlAddress());
                     try {
                         peer.send(m);
                     } catch (IOException e) {
-                        System.err.println("Failed to send UNSTORE message; ignoring");
+                        System.err.println(m.getChunkID() + "\t| Failed to send UNSTORE message; ignoring");
                         e.printStackTrace();
                     }
                 }

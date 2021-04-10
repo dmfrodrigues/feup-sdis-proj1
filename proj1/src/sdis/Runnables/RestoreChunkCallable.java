@@ -48,7 +48,7 @@ public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
                     ServerSocket serverSocket = new ServerSocket(0);
                     serverSocket.setSoTimeout((int) SOCKET_TIMEOUT_MILLIS);
 
-                    System.out.println("listening on address: " + InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort() );
+                    System.out.println(message.getChunkID() + "\t| Listening on address: " + InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort() );
                     peer.send(
                         new GetchunkTCPMessage(
                             peer.getId(),
@@ -70,7 +70,7 @@ public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
                     serverSocket.close();
                     if (chunk != null) break;
                 } catch (IOException e) {
-                    System.out.println("Failed to establish a connection: " + e.toString());
+                    System.out.println(message.getChunkID() + "\t| Failed to establish a connection: " + e.toString());
                 }
             }
 
@@ -79,24 +79,24 @@ public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
             try {
                 f = peer.getDataRecoverySocketHandler().request(message);
             } catch (IOException e) {
-                System.err.println("Failed to make request, trying again");
+                System.err.println(message.getChunkID() + "\t| Failed to make request, trying again");
                 e.printStackTrace();
                 continue;
             }
-            System.out.println("Asked for chunk " + message.getChunkID());
+            System.out.println(message.getChunkID() + "\t| Asked for chunk");
 
             // Wait for request to be satisfied
             try {
                 chunk = f.get(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                System.err.println("Future execution interrupted, trying again");
+                System.err.println(message.getChunkID() + "\t| Future execution interrupted, trying again");
                 e.printStackTrace();
             } catch (ExecutionException e) {
-                System.err.println("Future execution caused an exception, trying again");
+                System.err.println(message.getChunkID() + "\t| Future execution caused an exception, trying again");
                 e.printStackTrace();
             } catch (TimeoutException e) {
                 f.cancel(true);
-                System.err.println("Timed out waiting for CHUNK, trying again");
+                System.err.println(message.getChunkID() + "\t| Timed out waiting for CHUNK, trying again");
                 e.printStackTrace();
             }
 
