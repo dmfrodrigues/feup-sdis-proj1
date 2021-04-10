@@ -327,6 +327,8 @@ public class Peer implements PeerInterface {
                 message.process(getPeer());
             }else if(message instanceof DeletedMessage && getPeer().requireVersion("1.1"))
                 message.process(getPeer());
+            else if(message instanceof GetchunkTCPMessage && getPeer().requireVersion("1.4"))
+                message.process(getPeer());
         }
 
         public void register(DeletedMessage deletedMessage) {

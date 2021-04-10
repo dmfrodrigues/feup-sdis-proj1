@@ -1,12 +1,15 @@
 package sdis.Runnables;
 
 import sdis.Messages.GetchunkMessage;
+import sdis.Messages.GetchunkTCPMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkOutput;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +23,12 @@ public class RestoreRunnable implements Runnable {
      * Timeout of waiting for a CHUNK response to a GETCHUNK message, in milliseconds.
      */
     private final static long TIMEOUT_MILLIS = 1000;
+
+    /**
+     * Timeout of waiting for a response in socket.
+     */
+    private final static long SOCKET_TIMEOUT_MILLIS = 500;
+
     /**
      * Number of attempts before giving up to receive CHUNK.
      */
@@ -52,6 +61,31 @@ public class RestoreRunnable implements Runnable {
             GetchunkMessage message = new GetchunkMessage(peer.getId(), fileId, i, peer.getControlAddress());
             byte[] chunk = null;
             for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
+
+                // Restore enhancement
+                if(peer.requireVersion("1.4")){
+                    try {
+                        ServerSocket serverSocket = new ServerSocket(0);
+                        serverSocket.setSoTimeout((int) SOCKET_TIMEOUT_MILLIS);
+
+                        System.out.println("listening on address: " + InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort() );
+                        peer.send(new GetchunkTCPMessage(peer.getId(), fileId, i, InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort(), peer.getControlAddress()));
+                        Socket socket = serverSocket.accept();
+                        socket.setSoTimeout((int) SOCKET_TIMEOUT_MILLIS);
+
+                        //Reads chunk
+                        InputStream input = socket.getInputStream();
+
+                        chunk = input.readAllBytes();
+
+                        socket.close();
+                        serverSocket.close();
+                        if (chunk != null) break;
+                    } catch (IOException e) {
+                        System.out.println("Failed to establish a connection: " + e.toString());
+                    }
+                }
+
                 // Make request
                 Future<byte[]> f;
                 try {
@@ -77,6 +111,8 @@ public class RestoreRunnable implements Runnable {
                     System.err.println("Timed out waiting for CHUNK, trying again");
                     e.printStackTrace();
                 }
+
+
             }
             System.out.println("Promise completed, received chunk " + message.getChunkID());
             try {
