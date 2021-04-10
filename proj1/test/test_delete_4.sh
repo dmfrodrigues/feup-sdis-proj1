@@ -44,10 +44,10 @@ test2 () {
 cd build
 ls
 rm -rf 1 2 3 4
-curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release  # 102B
-curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release         # 77.3KB
-curl http://ftp.debian.org/debian/dists/bullseye/InRelease         -o InRelease       # 2.3MB
-timeout $TIMEOUT java PeerDriver $VERSION2 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT  & PID1=$!
+if ! [ -f source_Release ]; then curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release; fi # 102B
+if ! [ -f Release        ]; then curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release       ; fi # 77.3KB
+if ! [ -f ChangeLog      ]; then curl http://ftp.debian.org/debian/dists/jessie/ChangeLog           -o ChangeLog     ; fi # 2.3MB
+timeout $TIMEOUT java PeerDriver $VERSION2 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID1=$!
 timeout $TIMEOUT java PeerDriver $VERSION1 2 service2 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID2=$!
 timeout $TIMEOUT java PeerDriver $VERSION2 3 service3 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID3=$!
 timeout $TIMEOUT java PeerDriver $VERSION1 4 service4 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID4=$!

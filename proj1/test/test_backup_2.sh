@@ -38,7 +38,9 @@ test () {
 
 cd build
 rm -rf 1 2 3 4 5
-curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release  # 102B
+if ! [ -f source_Release ]; then curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release; fi # 102B
+if ! [ -f Release        ]; then curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release       ; fi # 77.3KB
+if ! [ -f ChangeLog      ]; then curl http://ftp.debian.org/debian/dists/jessie/ChangeLog           -o ChangeLog     ; fi # 2.3MB
 timeout $TIMEOUT java PeerDriver $VERSION 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID1=$!
 timeout $TIMEOUT java PeerDriver $VERSION 2 service2 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID2=$!
 timeout $TIMEOUT java PeerDriver $VERSION 3 service3 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID3=$!

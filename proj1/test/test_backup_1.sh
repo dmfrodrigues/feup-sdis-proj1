@@ -32,9 +32,9 @@ test () {
 
 cd build
 rm -rf 1 2
-curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release  # 102B
-curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release         # 77.3KB
-curl http://ftp.debian.org/debian/dists/jessie/ChangeLog           -o ChangeLog       # 2.3MB
+if ! [ -f source_Release ]; then curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o source_Release; fi # 102B
+if ! [ -f Release        ]; then curl http://ftp.debian.org/debian/dists/jessie/Release             -o Release       ; fi # 77.3KB
+if ! [ -f ChangeLog      ]; then curl http://ftp.debian.org/debian/dists/jessie/ChangeLog           -o ChangeLog     ; fi # 2.3MB
 timeout $TIMEOUT java PeerDriver $VERSION 1 service1 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID1=$!
 timeout $TIMEOUT java PeerDriver $VERSION 2 service2 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID2=$!
 echo "Started peers with PIDs $PID1, $PID2"
