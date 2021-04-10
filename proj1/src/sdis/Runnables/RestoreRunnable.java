@@ -8,9 +8,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +22,12 @@ public class RestoreRunnable implements Runnable {
      * Timeout of waiting for a CHUNK response to a GETCHUNK message, in milliseconds.
      */
     private final static long TIMEOUT_MILLIS = 1000;
+
+    /**
+     * Timeout of waiting for a response in socket.
+     */
+    private final static long SOCKET_TIMEOUT_MILLIS = 500;
+
     /**
      * Number of attempts before giving up to receive CHUNK.
      */
@@ -61,13 +65,12 @@ public class RestoreRunnable implements Runnable {
                 if(peer.requireVersion("1.4")){
                     try {
                         ServerSocket serverSocket = new ServerSocket(0);
-                        serverSocket.setSoTimeout((int) TIMEOUT_MILLIS);
+                        serverSocket.setSoTimeout((int) SOCKET_TIMEOUT_MILLIS);
 
                         System.out.println("listening on address: " + InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort() );
                         peer.send(new GetchunkMessage(peer.getId(), fileId, i, InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort(), peer.getControlAddress()));
-
                         Socket socket = serverSocket.accept();
-                        socket.setSoTimeout((int) TIMEOUT_MILLIS);
+                        socket.setSoTimeout((int) SOCKET_TIMEOUT_MILLIS);
 
                         //Reads chunk
                         InputStream input = socket.getInputStream();
@@ -77,7 +80,9 @@ public class RestoreRunnable implements Runnable {
                         socket.close();
                         serverSocket.close();
                         if (chunk != null) break;
-                    }catch (Exception e){ System.out.println("Failed to establish a connection"); }
+                    } catch (IOException e) {
+                        System.out.println("Failed to establish a connection: " + e.toString());
+                    }
                 }
 
                 // Make request
