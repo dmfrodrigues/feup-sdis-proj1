@@ -244,17 +244,6 @@ public class Peer implements PeerInterface {
         DatagramPacket packet = message.getPacket();
         sendSocket.send(packet);
 
-
-        // Starts the delete process for one of the pending files
-        if(!this.getFileTable().getPendingDelete().isEmpty()) {
-            System.out.println(this.getFileTable().getPendingDelete());
-            Iterator<String> i = this.getFileTable().getPendingDelete().iterator();
-            if(!i.hasNext()) return;
-            String path = i.next();
-            i.remove();
-            System.out.println("Trying to delete " + path + " again");
-            delete(path);
-        }
     }
 
     public abstract static class SocketHandler implements Runnable {
@@ -320,6 +309,20 @@ public class Peer implements PeerInterface {
                 message instanceof DeleteMessage
             ) {
                 message.process(getPeer());
+
+
+                //TODO
+                if(message.getSenderId().equals("pending peer id")) ;
+                // Starts the delete process for one of the pending files
+                if(!getPeer().getFileTable().getPendingDelete().isEmpty()) {
+                    System.out.println(getPeer().getFileTable().getPendingDelete());
+                    Iterator<String> i = getPeer().getFileTable().getPendingDelete().iterator();
+                    if(!i.hasNext()) return;
+                    String path = i.next();
+                    i.remove();
+                    System.out.println("Trying to delete " + path + " again");
+                    getPeer().delete(path);
+                }
             }
             if(getPeer().requireVersion("1.2") && (
                 message instanceof UnstoreMessage
