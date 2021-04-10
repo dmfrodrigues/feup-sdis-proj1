@@ -23,17 +23,27 @@ public class GetchunkMessage extends MessageWithChunkNo {
     }
 
     public GetchunkMessage(int senderId, String fileId, int chunkNo, String address, InetSocketAddress inetSocketAddress){
-        super("1.3", "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
+        super("1.4", "GETCHUNK", senderId, fileId, chunkNo, inetSocketAddress);
         this.address = address;
     }
 
     public byte[] getBytes(){
-        byte[] header = super.getBytes();
-        byte[] term = ("\r\n\r\n").getBytes();
-        byte[] ret = new byte[header.length + term.length];
-        System.arraycopy(header       , 0, ret, 0, header.length);
-        System.arraycopy(term         , 0, ret, header.length, term.length);
-        return ret;
+        if(getVersion().equals("1.0")){
+            byte[] header = super.getBytes();
+            byte[] term = ("\r\n\r\n").getBytes();
+            byte[] ret = new byte[header.length + term.length];
+            System.arraycopy(header       , 0, ret, 0, header.length);
+            System.arraycopy(term         , 0, ret, header.length, term.length);
+            return ret;
+        }
+        else{
+            byte[] header = super.getBytes();
+            byte[] term = ("\r\n"+ address +"\r\n").getBytes();
+            byte[] ret = new byte[header.length + term.length];
+            System.arraycopy(header       , 0, ret, 0, header.length);
+            System.arraycopy(term         , 0, ret, header.length, term.length);
+            return ret;
+        }
     }
 
     public String getHostname(){
@@ -47,19 +57,23 @@ public class GetchunkMessage extends MessageWithChunkNo {
     @Override
     public void process(Peer peer) {
 
+
         System.out.println("Peer " + getSenderId() + " requested chunk " + getChunkID());
-        if(!peer.getStorageManager().hasChunk(getChunkID())) return;
+        if(!peer.getStorageManager().hasChunk(getChunkID()) || !peer.requireVersion(getVersion())) return;
 
         byte[] chunk;
 
         // Restore enhancement
-        if(getVersion().equals("1.3")){
+        if(getVersion().equals("1.4")){
             try {
+                System.out.println("Trying to connect to : "+getHostname()+":"+getPort());
                 Socket socket = new Socket(getHostname(), getPort());
                 // send chunk
                 OutputStream output = socket.getOutputStream();
                 chunk = peer.getStorageManager().getChunk(getChunkID());
                 output.write(chunk);
+                System.out.println("Sent Chunk");
+                socket.close();
 
             } catch (IOException e) {
                 e.printStackTrace();

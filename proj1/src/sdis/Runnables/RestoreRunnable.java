@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutionException;
@@ -57,13 +58,13 @@ public class RestoreRunnable implements Runnable {
             for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
 
                 // Restore enhancement
-                if(peer.getVersion().equals("1.3")){
+                if(peer.requireVersion("1.4")){
                     try {
                         ServerSocket serverSocket = new ServerSocket(0);
                         serverSocket.setSoTimeout((int) TIMEOUT_MILLIS);
 
-                        System.out.println("listening on address: " + serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort() );
-                        peer.send(new GetchunkMessage(peer.getId(), fileId, i, serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort(), peer.getControlAddress()));
+                        System.out.println("listening on address: " + InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort() );
+                        peer.send(new GetchunkMessage(peer.getId(), fileId, i, InetAddress. getLocalHost().getHostAddress() + ":" + serverSocket.getLocalPort(), peer.getControlAddress()));
 
                         Socket socket = serverSocket.accept();
                         socket.setSoTimeout((int) TIMEOUT_MILLIS);
@@ -73,19 +74,10 @@ public class RestoreRunnable implements Runnable {
 
                         chunk = input.readAllBytes();
 
-                        try {
-                            fileChunkOutput.set(i, chunk);
-                        } catch (IOException e) {
-                            System.err.println("Failed to set chunk to file chunk output");
-                            e.printStackTrace();
-                            break;
-                        }
-
                         socket.close();
                         serverSocket.close();
-                    }catch (Exception e){}
-
-                    break;
+                        if (chunk != null) break;
+                    }catch (Exception e){ System.out.println("Failed to establish a connection"); }
                 }
 
                 // Make request
@@ -113,6 +105,8 @@ public class RestoreRunnable implements Runnable {
                     System.err.println("Timed out waiting for CHUNK, trying again");
                     e.printStackTrace();
                 }
+
+
             }
             System.out.println("Promise completed, received chunk " + message.getChunkID());
             try {
