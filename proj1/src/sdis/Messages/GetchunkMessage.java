@@ -28,17 +28,16 @@ public class GetchunkMessage extends MessageWithChunkNo {
     }
 
     public byte[] getBytes(){
-        if(!getVersion().equals("1.4")){
+        if(getVersion().equals("1.4")){
             byte[] header = super.getBytes();
-            byte[] term = ("\r\n\r\n").getBytes();
+            byte[] term = ("\r\n"+ address +"\r\n").getBytes();
             byte[] ret = new byte[header.length + term.length];
             System.arraycopy(header       , 0, ret, 0, header.length);
             System.arraycopy(term         , 0, ret, header.length, term.length);
             return ret;
-        }
-        else{
+        }else{
             byte[] header = super.getBytes();
-            byte[] term = ("\r\n"+ address +"\r\n").getBytes();
+            byte[] term = ("\r\n\r\n").getBytes();
             byte[] ret = new byte[header.length + term.length];
             System.arraycopy(header       , 0, ret, 0, header.length);
             System.arraycopy(term         , 0, ret, header.length, term.length);

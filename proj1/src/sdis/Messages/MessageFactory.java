@@ -26,7 +26,7 @@ public class MessageFactory {
         String address = null;
 
         if(headers.length>1){
-            address = headers[1];
+            address = headers[1].trim();
         }
 
         // Messages without body
