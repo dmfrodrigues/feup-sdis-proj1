@@ -6,8 +6,6 @@ import sdis.Storage.FileChunkIterator;
 
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -48,23 +46,11 @@ public class BackupFileCallable extends BaseProtocolCallable {
                 Future<Void> f = it.next();
                 if(!f.isDone()) continue;
                 it.remove();
-                try {
-                    futureList.remove().get();
-                } catch (InterruptedException | ExecutionException e) {
-                    System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
-                    e.printStackTrace();
-                    return null;
-                }
+                if (!popFutureList(f)) return null;
             }
             // If the queue still has too many elements, pop the first
             while(futureList.size() >= MAX_FUTURE_QUEUE_SIZE) {
-                try {
-                    futureList.remove().get();
-                } catch (InterruptedException | ExecutionException e) {
-                    System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
-                    e.printStackTrace();
-                    return null;
-                }
+                if (!popFutureList(futureList.remove())) return null;
             }
             // Add new future
             byte[] chunk = fileChunkIterator.next();
@@ -74,17 +60,22 @@ public class BackupFileCallable extends BaseProtocolCallable {
         }
         // Empty the futures list
         while(!futureList.isEmpty()) {
-            try {
-                futureList.remove().get();
-            } catch (InterruptedException | ExecutionException e) {
-                System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
-                e.printStackTrace();
-                return null;
-            }
+            if (!popFutureList(futureList.remove())) return null;
         }
 
         System.out.println(fileChunkIterator.getFileId() + "\t| Done backing-up file");
 
         return null;
+    }
+
+    private boolean popFutureList(Future<Void> f){
+        try {
+            f.get();
+        } catch (InterruptedException | ExecutionException e) {
+            System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 }
