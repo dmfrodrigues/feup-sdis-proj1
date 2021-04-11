@@ -1,7 +1,7 @@
 package sdis;
 
 import sdis.Messages.*;
-import sdis.Runnables.*;
+import sdis.Callables.*;
 import sdis.Storage.ChunkStorageManager;
 import sdis.Storage.FileChunkIterator;
 import sdis.Storage.FileTable;
@@ -234,8 +234,9 @@ public class Peer implements PeerInterface {
 
     public void send(Message message) throws IOException {
         DatagramPacket packet = message.getPacket();
-        sendSocket.send(packet);
-
+        synchronized (sendSocket) {
+            sendSocket.send(packet);
+        }
     }
 
     public abstract static class SocketHandler implements Runnable {
