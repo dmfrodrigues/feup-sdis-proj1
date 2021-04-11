@@ -59,7 +59,9 @@ public class GetchunkTCPMessage extends MessageWithChunkNo {
             System.out.println(getChunkID() + "\t| Sent Chunk using TCP");
             socket.close();
         } catch (IOException e) {
-            System.err.println(getChunkID() + " | An IOException occured in peer " + peer.getId());
+            System.err.println(getChunkID() + " | Failed to TCP connect and send chunk; " +
+                "tends to be an occasional error, where the server socket has not yet been closed and the peer hasn't realised it yet"
+            );
             e.printStackTrace();
         }
     }
