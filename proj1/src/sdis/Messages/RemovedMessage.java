@@ -7,7 +7,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import static java.lang.Thread.sleep;
 import java.io.File;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
