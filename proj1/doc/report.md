@@ -2,7 +2,11 @@ This report addresses the enhancements made to the first project of the course S
 
 Enhancements are incremental; i.e., if an enhancement was implemented in a certain version, then it is used in that version and in all posterior versions.
 
-# Backup enhancements
+# Parallelism enhancements
+
+# Protocol enhancements
+
+## Backup enhancements
 
 > *This scheme can deplete the backup space rather rapidly, and cause too much activity on the nodes once that space is full. Can you think of an alternative scheme that ensures the desired replication degree, avoids these problems, and, nevertheless, can interoperate with peers that execute the chunk backup protocol described above?*
 
@@ -11,7 +15,7 @@ This is because a non-initiator peer only processes the `PUTCHUNK` message it re
 
 We devised two complementary solutions for this problem.
 
-## Make wait time useful
+### Make wait time useful
 
 Instead of saving the chunk and waiting for a random time period from 0 to 400ms before sending a `STORED` (which is currently only serving the purpose of avoiding packet collisions), a non-initiator peer can instead wait for that same random time period while listening to MC for arriving `STORED` messages, and by having the count of `STORED` messages that arrived by the end of the wait period it can either:
 
@@ -24,7 +28,7 @@ This method is expected to work the best in networks with least latency, as the 
 
 This enhancement is implemented in version 1.2, and although we tested over a same-computer network the latency was appreciable (around 100ms), which meant that, in a network with 5 peers, one of the peers requesting to back-up a chunk with replication degree 2 would often lead to 3 peers backing-up the chunk.
 
-## Reclaim space from excessive backing-up
+### Reclaim space from excessive backing-up
 
 After the initiator peer waits for a certain time period (starting in the required 1000ms), it must count how many `STORED` messages it received relating to the chunk it just backed-up, so it can infer if the required replication degree has been met. However, from the `STORED` messages it receives, it can infer which peers backed-up the chunk, and if it notices there have been more peers backing-up than required, it can notify a certain number of them so they release the space they inadvertently used to store the chunk.
 
@@ -41,7 +45,7 @@ Curiously, the previous enhancement improves the performance of this enhancement
 
 This enhancement could otherwise be made in a way that is less expensive in terms of disk usage, in which the initiator first multicasts a request for peers to tell if they are online (`GETONLINE`), the peers would answer they are online (`ISONLINE`) and indicate in the header if they can store a chunk or not, and the initiator would pick some peers to send the chunk to; the main disadvantage is that it would require two new messages, and either change `PUTCHUNK` to have a destination ID or make a TCP connection to each destination peer.
 
-# Restore enhancements
+## Restore enhancements
 
 > *If the files are large, this protocol may not be desirable: only one peer needs to receive the chunks, but we are using a multicast channel for sending all the file's chunks. Can you think of a change to the protocol that would eliminate this problem, and yet interoperate with non-initiator peers that implement the protocol described in this section? Your enhancement **must use TCP** to get full credit.*
 
@@ -60,7 +64,7 @@ which instructs all peers that have the requested chunk to try to connect to the
 
 The initiator will first multicast a `GETCHUNKTCP` message and try to get the chunk from the TCP connection. To maintain interoperability, the initiator must use the original protocol after it fails to find any peer that is able to connect to the TCP socket.
 
-# Deletion enhancements
+## Deletion enhancements
 
 > *If a peer that backs up some chunks of the file is not running at the time the initiator peer sends a `DELETE` message for that file, the space used by these chunks will never be reclaimed. Can you think of a change to the protocol, possibly including additional messages, that would allow to reclaim storage space even in that event?*
 
