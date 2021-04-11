@@ -4,6 +4,28 @@ Enhancements are incremental; i.e., if an enhancement was implemented in a certa
 
 # Parallelism enhancements
 
+We defined a scheduled executor for each peer with 30 threads, which immediately solves the issue of thread creation/deletion overhead. We picked a large number because most of the time these threads are not in use or are blocked waiting for other calls, so the number of threads being used may be large but the actual number of running threads in CPU is relatively small and only for short periods.
+
+## One thread per multicast channel
+
+We implemented one thread per multicast channel, by extending `Runnable` with a generic class `SocketHandler` to handle incoming messages from a single socket, and inheriting `ControlSocketHandler`, `DataBroadcastSocketHandler` and `DataRecoverySocketHandler` from that class to run them on separate threads. We could have avoided to use `DataRecoverySocketHandler` as an initiator peer always knows it will receive packets on MDR only after sending a `GETCHUNK` message, but since there were many similarities in the way MDB and MDR work we decided to keep an uniform implementation.
+
+## Many protocol instances at a time
+
+This is done using a specialized `Callable` instance for each protocol instance. We extended `Callable` with class `BaseProtocolCallable` (which cannot throw exceptions), which in turn we extended with protocol-specific classes `BackupFileCallable`, `DeleteFileCallable`, `RestoreFileCallable`, `ReclaimCallable` and `StateCallable`; each protocol callable instance has all the information it needs to run, and all protocol instances cooperate with each of the three shared socket handlers in a peer to perform their jobs, and the shared sockets have appropriate synchronization mechanisms (mostly `synchronized` blocks) to avoid race conditions.
+
+`BackupFileCallable`, `DeleteFileCallable`, `RestoreFileCallable` and `ReclaimCallable` instances are executed concurrently by the peer executer when created upon request from the `TestApp` and the `TestApp` immediately returns, but for `StateCallable` the `TestApp` only returns when it receives all state information and prints it, because we considered it would be more useful to have the `TestApp` wait to get the results from the state operation, while the other operations were most interesting if running in the background.
+
+## Processing different messages received on the same channel at the same time
+
+`SocketHandler` is a wrapper which runs an infinite cycle blocking on `DatagramSocket#receive(DatagramPacket)`, waiting for messages; when one arrives, the `SocketHandler` calls its abstract function `handle(Message)`, which each specialized socket handler must implement, usually just making some simple checks (like message type) and then calling `Message#process(Peer)`. Thus, all we had to do was to have the `SocketHandler` create a callable on-the-fly where he calls `handle(Message)` and submit that to the peer executor, instead of the socket handler thread executing `handle(Message)` itself.
+
+## No `Thread.sleep()`
+
+We do not use `Thread.sleep()` anywhere in our code, thus avoiding busy waits altogether; instead we used scheduled futures and used `Future#get()`. We additionally invested efforts into reducing the number of running threads to the bare minimum (e.g., not having futures wait for other futures), particularly in avoiding the use of empty scheduled futures (which can be used as a valid and non-busy replacement for `Thread.sleep()`, but still take up thread resources).
+
+Among the two approaches to asynchronous operations (futures and non-busy blocking on future resolution, vs fully-asynchronous future chaining and `then`-functions), the first takes more threads (because the main thread will block while waiting for the thread that is running the future) but is also more readable as it closely resembles synchronous code, and since we are not very familiar with the way `then`-functions and promises work with Java we preferred the first option.
+
 # Protocol enhancements
 
 ## Backup enhancements
