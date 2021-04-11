@@ -479,11 +479,18 @@ public class Peer implements PeerInterface {
             synchronized (map) {
                 map.put(removedMessage.getChunkID(), dataList);
             }
-            getPeer().getExecutor().schedule(()->{}, timeout, TimeUnit.MILLISECONDS);
-            boolean ret;
-            synchronized (dataList){ ret = !dataList.isEmpty(); }
-            synchronized (map){ map.remove(removedMessage.getChunkID()); }
-            return ret;
+            try {
+                return getPeer().getExecutor().schedule(()->{
+                    boolean ret;
+                    synchronized (dataList){ ret = !dataList.isEmpty(); }
+                    synchronized (map){ map.remove(removedMessage.getChunkID()); }
+                    return ret;
+                }, timeout, TimeUnit.MILLISECONDS).get();
+            } catch (InterruptedException | ExecutionException e) {
+                System.err.println(removedMessage.getChunkID() + " | An exception occured while sensing to answers to REMOVED");
+                e.printStackTrace();
+                return false;
+            }
         }
 
     }
@@ -568,11 +575,18 @@ public class Peer implements PeerInterface {
             synchronized (map) {
                 map.put(getchunkMessage.getChunkID(), dataList);
             }
-            getPeer().getExecutor().schedule(()->{}, timeout, TimeUnit.MILLISECONDS);
-            boolean ret;
-            synchronized (dataList){ ret = !dataList.isEmpty(); }
-            synchronized (map){ map.remove(getchunkMessage.getChunkID()); }
-            return ret;
+            try {
+                return getPeer().getExecutor().schedule(()->{
+                    boolean ret;
+                    synchronized (dataList){ ret = !dataList.isEmpty(); }
+                    synchronized (map){ map.remove(getchunkMessage.getChunkID()); }
+                    return ret;
+                }, timeout, TimeUnit.MILLISECONDS).get();
+            } catch (InterruptedException | ExecutionException e) {
+                System.err.println(getchunkMessage.getChunkID() + " | An exception occured while sensing to answers to GETCHUNK");
+                e.printStackTrace();
+                return false;
+            }
         }
     }
 }
