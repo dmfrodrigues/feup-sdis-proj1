@@ -62,7 +62,6 @@ public class GetchunkTCPMessage extends MessageWithChunkNo {
             System.out.println(getChunkID() + " | Failed to TCP connect and send chunk; " +
                 "tends to be an occasional error, where the server socket has not yet been closed and the peer hasn't realised it yet"
             );
-            e.printStackTrace();
         }
     }
 }
