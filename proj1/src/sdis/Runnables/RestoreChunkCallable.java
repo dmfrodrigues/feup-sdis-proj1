@@ -4,6 +4,7 @@ import sdis.Exceptions.RestoreProtocolException;
 import sdis.Messages.GetchunkMessage;
 import sdis.Messages.GetchunkTCPMessage;
 import sdis.Peer;
+import sdis.Utils.Pair;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,7 +16,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
+public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>> {
     /**
      * Timeout of waiting for a CHUNK response to a GETCHUNK message, in milliseconds.
      */
@@ -37,7 +38,7 @@ public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
         this.message = message;
     }
 
-    public byte[] call() throws RestoreProtocolException {
+    public Pair<Integer,byte[]> call() throws RestoreProtocolException {
         byte[] chunk = null;
 
         for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
@@ -105,6 +106,6 @@ public class RestoreChunkCallable extends ProtocolCallable<byte[]> {
 
         if(chunk == null) throw new RestoreProtocolException("Could not restore chunk " + message.getChunkID());
 
-        return chunk;
+        return new Pair<>(message.getChunkNo(), chunk);
     }
 }

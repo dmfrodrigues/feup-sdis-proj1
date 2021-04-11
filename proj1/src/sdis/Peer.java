@@ -386,7 +386,7 @@ public class Peer implements PeerInterface {
          * @brief Get a future relative to how many STORED messages answering a given PUTCHUNK message were collected
          * over a period of time specified in milliseconds.
          *
-         * If the required number of STORED messages is met earlier than that time period, the future resolves immediately.
+         * Only returns after exactly a period of millis milliseconds.
          *
          * Useful when processing a received PUTCHUNK message, as the peer only needs to know how many peers stored
          * that chunk, not who exactly stored that chunk.
@@ -400,22 +400,11 @@ public class Peer implements PeerInterface {
                 String chunkId = m.getChunkID();
                 Set<Integer> peersThatStored = new HashSet<>();
                 storedMessageMap.put(chunkId, peersThatStored);
-                return getPeer().getExecutor().submit(() -> {
-                    Future<Integer> f = resolveWhenReplicationDegreeIsMet(m, peersThatStored);
-                    Integer ret;
-                    try {
-                        ret = f.get(millis, TimeUnit.MILLISECONDS);
-                    } catch (TimeoutException e) {
-                        f.cancel(true);
-                        synchronized (peersThatStored){
-                            ret = peersThatStored.size();
-                        }
+                return getPeer().getExecutor().schedule(() -> {
+                    synchronized (peersThatStored){
+                        return peersThatStored.size();
                     }
-                    synchronized (storedMessageMap){
-                        storedMessageMap.remove(chunkId);
-                    }
-                    return ret;
-                });
+                }, millis, TimeUnit.MILLISECONDS);
             }
         }
 
@@ -445,28 +434,6 @@ public class Peer implements PeerInterface {
                 }
             }, millis, TimeUnit.MILLISECONDS);
         }
-
-        /**
-         * @brief Get a future that will only resolve when replication degree required for a chunk is met.
-         *
-         * The future is relative to how many peers have confirmed to be storing the chunk.
-         *
-         * @param m                 PUTCHUNK message to check answers for
-         * @param peersThatStored   Set of peers that will report to have STORED the chunk
-         * @return
-         */
-        private Future<Integer> resolveWhenReplicationDegreeIsMet(PutchunkMessage m, Set<Integer> peersThatStored){
-            return getPeer().getExecutor().submit(() -> {
-                synchronized(peersThatStored){
-                    while(peersThatStored.size() < m.getReplicationDegree()) {
-                        try {
-                            peersThatStored.wait();
-                        } catch (InterruptedException ignored) {}
-                    }
-                    return peersThatStored.size();
-                }
-            });
-        }
     }
 
     public static class DataBroadcastSocketHandler extends SocketHandler {
@@ -484,48 +451,38 @@ public class Peer implements PeerInterface {
             }
         }
 
-        public synchronized void register(String chunkId, byte[] data){
-            if (map.containsKey(chunkId)) {
-                ArrayList<Byte> dataList = map.get(chunkId);
-                synchronized(dataList) {
-                    dataList.clear();
-                    for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
-                    dataList.notifyAll();
+        public void register(String chunkId, byte[] data){
+            synchronized (map) {
+                if (map.containsKey(chunkId)) {
+                    ArrayList<Byte> dataList = map.get(chunkId);
+                    synchronized (dataList) {
+                        dataList.clear();
+                        for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
+                        dataList.notifyAll();
+                    }
                 }
             }
         }
 
-        private synchronized Future<byte[]> getPutChunkPromise(String chunkId){
-            ArrayList<Byte> retList = new ArrayList<>();
-            map.put(chunkId, retList);
-            return getPeer().getExecutor().submit(() -> {
-                synchronized (retList) {
-                    while(retList.size() == 0) retList.wait();
-                    byte[] ret;
-                    ret = new byte[retList.size()];
-                    for (int i = 0; i < retList.size(); ++i)
-                        ret[i] = retList.get(i);
-                    map.remove(chunkId);
-                    return ret;
-                }
-            });
-        }
+        /**
+         * @brief Senses data broadcast channel for an answer to a RemovedMessage.
+         *
+         * @param removedMessage    Message to check if there is an answer to
+         * @param millis            Milliseconds to wait for
+         * @return                  True if channel was sensed busy with a message replying to removedMessage, false otherwise
+         */
         public boolean sense(RemovedMessage removedMessage, int millis) {
             map.clear();
             int timeout = getPeer().getRandom().nextInt(millis);
-            Future<byte[]> f = getPutChunkPromise(removedMessage.getChunkID());
-            try {
-                f.get(timeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException | ExecutionException e) {
-                System.err.println("Future failed, returning false");
-                e.printStackTrace();
-                return false;
-            } catch (TimeoutException e) {
-                f.cancel(true);
-                return false;
+            ArrayList<Byte> dataList = new ArrayList<>();
+            synchronized (map) {
+                map.put(removedMessage.getChunkID(), dataList);
             }
-
-            return true;
+            getPeer().getExecutor().schedule(()->{}, timeout, TimeUnit.MILLISECONDS);
+            boolean ret;
+            synchronized (dataList){ ret = !dataList.isEmpty(); }
+            synchronized (map){ map.remove(removedMessage.getChunkID()); }
+            return ret;
         }
 
     }
@@ -559,14 +516,16 @@ public class Peer implements PeerInterface {
          * @param chunkId   Chunk ID (file ID + chunk sequential number)
          * @param data      Contents of that chunk
          */
-        public synchronized void register(String chunkId, byte[] data){
-            if (map.containsKey(chunkId)) {
-                System.out.println(chunkId + "\t| Registering chunk");
-                ArrayList<Byte> dataList = map.get(chunkId);
-                synchronized(dataList) {
-                    dataList.clear();
-                    for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
-                    dataList.notifyAll();
+        public void register(String chunkId, byte[] data){
+            synchronized (map) {
+                if (map.containsKey(chunkId)) {
+                    System.out.println(chunkId + "\t| Registering chunk");
+                    ArrayList<Byte> dataList = map.get(chunkId);
+                    synchronized (dataList) {
+                        dataList.clear();
+                        for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
+                        dataList.notifyAll();
+                    }
                 }
             }
         }
@@ -580,31 +539,16 @@ public class Peer implements PeerInterface {
          */
         public Future<byte[]> request(GetchunkMessage message) throws IOException {
             getPeer().send(message);
-            String id = message.getChunkID();
-            return getChunkPromise(id);
-        }
-
-        /**
-         * @brief Gets promise for a CHUNK message.
-         *
-         * This promise represents the CHUNK message that will be received after asking by the chunk with a certain ID.
-         *
-         * When the intended CHUNK message is found in the map, it is removed from the map and returned.
-         *
-         * @param chunkId   ID of the chunk
-         * @return          Future of the chunk
-         */
-        private synchronized Future<byte[]> getChunkPromise(String chunkId){
-            ArrayList<Byte> retList = new ArrayList<>();
-            map.put(chunkId, retList);
+            ArrayList<Byte> dataList = new ArrayList<>();
+            map.put(message.getChunkID(), dataList);
             return getPeer().getExecutor().submit(() -> {
-                synchronized (retList) {
-                    while(retList.size() == 0) retList.wait();
+                synchronized (dataList) {
+                    while(dataList.size() == 0) dataList.wait();
                     byte[] ret;
-                    ret = new byte[retList.size()];
-                    for (int i = 0; i < retList.size(); ++i)
-                        ret[i] = retList.get(i);
-                    map.remove(chunkId);
+                    ret = new byte[dataList.size()];
+                    for (int i = 0; i < dataList.size(); ++i)
+                        ret[i] = dataList.get(i);
+                    map.remove(message.getChunkID());
                     return ret;
                 }
             });
@@ -619,18 +563,15 @@ public class Peer implements PeerInterface {
          */
         public boolean sense(GetchunkMessage getchunkMessage, int millis) {
             int timeout = getPeer().getRandom().nextInt(millis);
-            Future<byte[]> f = getChunkPromise(getchunkMessage.getChunkID());
-            try {
-                f.get(timeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException | ExecutionException e) {
-                System.err.println("Future failed, returning false");
-                e.printStackTrace();
-                return false;
-            } catch (TimeoutException e) {
-                f.cancel(true);
-                return false;
+            ArrayList<Byte> dataList = new ArrayList<>();
+            synchronized (map) {
+                map.put(getchunkMessage.getChunkID(), dataList);
             }
-            return true;
+            getPeer().getExecutor().schedule(()->{}, timeout, TimeUnit.MILLISECONDS);
+            boolean ret;
+            synchronized (dataList){ ret = !dataList.isEmpty(); }
+            synchronized (map){ map.remove(getchunkMessage.getChunkID()); }
+            return ret;
         }
     }
 }

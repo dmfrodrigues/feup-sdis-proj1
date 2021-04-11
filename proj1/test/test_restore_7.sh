@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TIMEOUT=100
+TIMEOUT=30
 VERSION=1.5
 MC_ADDR=230.0.0.1
 MC_PORT=8888
@@ -25,7 +25,7 @@ test () {
 }
 
 cd build
-rm -rf 1 2
+rm -rf 1 2 3
 mkdir -p testfiles
 if ! [ -f testfiles/source_Release ]; then curl http://ftp.debian.org/debian/dists/jessie/main/source/Release -o testfiles/source_Release; fi # 102B
 if ! [ -f testfiles/Release        ]; then curl http://ftp.debian.org/debian/dists/jessie/Release             -o testfiles/Release       ; fi # 77.3KB
@@ -54,10 +54,10 @@ test "test-restore-7-02" "cat Release" "cat testfiles/Release"
 
 cp testfiles/ChangeLog .
 timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
-sleep 10
+sleep 5
 rm ChangeLog
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
-sleep 10
+sleep 5
 test "test-restore-7-03" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1
