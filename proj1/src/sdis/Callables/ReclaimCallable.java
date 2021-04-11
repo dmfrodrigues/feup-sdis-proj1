@@ -1,4 +1,4 @@
-package sdis.Runnables;
+package sdis.Callables;
 
 import sdis.Messages.RemovedMessage;
 import sdis.Peer;
@@ -6,7 +6,6 @@ import sdis.Peer;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 public class ReclaimCallable extends BaseProtocolCallable {
 
