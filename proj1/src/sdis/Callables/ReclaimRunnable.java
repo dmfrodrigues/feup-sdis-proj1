@@ -7,18 +7,18 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-public class ReclaimCallable extends BaseProtocolCallable {
+public class ReclaimRunnable extends ProtocolRunnable {
 
     private final Peer peer;
     private final int space_kb;
 
-    public ReclaimCallable(Peer peer, int space_kb) {
+    public ReclaimRunnable(Peer peer, int space_kb) {
         this.peer = peer;
         this.space_kb = space_kb;
     }
 
     @Override
-    public Void call() {
+    public void run() {
         if(peer.getStorageManager().getMemoryUsed() > space_kb *1000){
             List<File> chunks = peer.getStorageManager().getChunks();
             for (File file : chunks) {
@@ -39,7 +39,5 @@ public class ReclaimCallable extends BaseProtocolCallable {
             }
         }
         peer.getStorageManager().setMaxSize(space_kb *1000);
-
-        return null;
     }
 }

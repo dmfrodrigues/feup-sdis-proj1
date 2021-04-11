@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
 
 /**
  * @brief File chunk output.
@@ -17,8 +19,8 @@ import java.io.IOException;
 public class FileChunkOutput {
     private final static int BUFFER_SIZE = 10;
 
-    private final FileOutputStream fileOutputStream;
-    private final FixedSizeBuffer<byte[]> buffer;
+    private final AsynchronousFileChannel fileOutputStream;
+    private final FixedSizeBuffer<ByteBuffer> buffer;
 
     /**
      * Create FileChunkOutput.
@@ -26,8 +28,8 @@ public class FileChunkOutput {
      * @param file  File to sync with/write to
      * @throws FileNotFoundException If file is not found (never thrown, as file needs not exist)
      */
-    public FileChunkOutput(File file) throws FileNotFoundException {
-        fileOutputStream = new FileOutputStream(file);
+    public FileChunkOutput(File file) throws IOException {
+        fileOutputStream = AsynchronousFileChannel.open(file.toPath());
         buffer = new FixedSizeBuffer<>(BUFFER_SIZE);
     }
 
@@ -42,9 +44,11 @@ public class FileChunkOutput {
      * @throws ArrayIndexOutOfBoundsException   If chunk index was not accepted
      */
     public void set(int i, byte[] e) throws IOException, ArrayIndexOutOfBoundsException {
-        buffer.set(i, e);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(e);
+        buffer.set(i, byteBuffer);
         if(buffer.hasNext()){
-            fileOutputStream.write(buffer.next());
+            ByteBuffer next = buffer.next();
+            fileOutputStream.write(next, next.limit());
         }
     }
 
@@ -54,6 +58,7 @@ public class FileChunkOutput {
      * @throws IOException  If fails to close
      */
     public void close() throws IOException {
+        fileOutputStream.force(true);
         fileOutputStream.close();
     }
 }

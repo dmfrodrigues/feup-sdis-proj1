@@ -9,7 +9,7 @@ import java.util.LinkedList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class BackupFileCallable extends BaseProtocolCallable {
+public class BackupFileRunnable extends ProtocolRunnable {
     /**
      * Maximum amount of chunk backup futures that can be running at a given time.
      *
@@ -23,7 +23,7 @@ public class BackupFileCallable extends BaseProtocolCallable {
     private final FileChunkIterator fileChunkIterator;
     private final int replicationDegree;
 
-    public BackupFileCallable(Peer peer, FileChunkIterator fileChunkIterator, int replicationDegree){
+    public BackupFileRunnable(Peer peer, FileChunkIterator fileChunkIterator, int replicationDegree){
         this.peer = peer;
         this.fileChunkIterator = fileChunkIterator;
         this.replicationDegree = replicationDegree;
@@ -32,7 +32,7 @@ public class BackupFileCallable extends BaseProtocolCallable {
     }
 
     @Override
-    public Void call() {
+    public void run() {
         int n = fileChunkIterator.length();
 
         peer.getFileTable().setFileDesiredRepDegree(fileChunkIterator.getFileId(), replicationDegree);
@@ -46,26 +46,30 @@ public class BackupFileCallable extends BaseProtocolCallable {
                 Future<Void> f = it.next();
                 if(!f.isDone()) continue;
                 it.remove();
-                if (!popFutureList(f)) return null;
+                if (!popFutureList(f)) return;
             }
             // If the queue still has too many elements, pop the first
             while(futureList.size() >= MAX_FUTURE_QUEUE_SIZE) {
-                if (!popFutureList(futureList.remove())) return null;
+                if (!popFutureList(futureList.remove())) return;
             }
             // Add new future
-            byte[] chunk = fileChunkIterator.next();
-            PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
-            BackupChunkCallable backupChunkCallable = new BackupChunkCallable(peer, message, replicationDegree);
-            futureList.add(peer.getExecutor().submit(backupChunkCallable));
+            int finalI = i;
+            futureList.add(
+                fileChunkIterator.next()
+                .thenApplyAsync(chunk -> {
+                    PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), finalI, replicationDegree, chunk, peer.getDataBroadcastAddress());
+                    BackupChunkSupplier backupChunkCallable = new BackupChunkSupplier(peer, message, replicationDegree);
+                    backupChunkCallable.get();
+                    return null;
+                }, peer.getExecutor())
+            );
         }
         // Empty the futures list
         while(!futureList.isEmpty()) {
-            if (!popFutureList(futureList.remove())) return null;
+            if (!popFutureList(futureList.remove())) return;
         }
 
         System.out.println(fileChunkIterator.getFileId() + "\t| Done backing-up file");
-
-        return null;
     }
 
     private boolean popFutureList(Future<Void> f){

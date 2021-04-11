@@ -3,9 +3,7 @@ package sdis.Messages;
 import sdis.Peer;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 
 public class GetchunkMessage extends MessageWithChunkNo {
     /**

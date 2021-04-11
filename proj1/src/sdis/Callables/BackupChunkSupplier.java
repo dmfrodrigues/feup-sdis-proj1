@@ -8,10 +8,11 @@ import sdis.Peer;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class BackupChunkCallable extends ProtocolCallable<Void> {
+public class BackupChunkSupplier extends ProtocolSupplier<Void> {
     /**
      * Time to wait before resending a backup request, in milliseconds.
      */
@@ -25,7 +26,7 @@ public class BackupChunkCallable extends ProtocolCallable<Void> {
     private final PutchunkMessage message;
     private final int replicationDegree;
 
-    public BackupChunkCallable(Peer peer, PutchunkMessage message, int replicationDegree){
+    public BackupChunkSupplier(Peer peer, PutchunkMessage message, int replicationDegree){
 
         this.peer = peer;
         this.message = message;
@@ -33,7 +34,7 @@ public class BackupChunkCallable extends ProtocolCallable<Void> {
     }
 
     @Override
-    public Void call() throws BackupProtocolException {
+    public Void get() {
         peer.getFileTable().setChunkDesiredRepDegree(message.getChunkID(), replicationDegree);
 
         Set<Integer> peersThatStored = null;
@@ -63,7 +64,7 @@ public class BackupChunkCallable extends ProtocolCallable<Void> {
         } while(numStored < replicationDegree && attempts < ATTEMPTS);
 
         if(numStored < replicationDegree || peersThatStored == null)
-            throw new BackupProtocolException("Failed to backup chunk " + message.getChunkID());
+            throw new CompletionException(new BackupProtocolException("Failed to backup chunk " + message.getChunkID()));
 
         // Send UNSTORE to whoever stored the chunk and didn't need to
         if(peer.requireVersion("1.2")) {

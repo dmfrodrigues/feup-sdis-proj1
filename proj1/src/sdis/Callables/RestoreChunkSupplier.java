@@ -11,12 +11,9 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
-public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>> {
+public class RestoreChunkSupplier extends ProtocolSupplier<Pair<Integer,byte[]>> {
     /**
      * Timeout of waiting for a CHUNK response to a GETCHUNK message, in milliseconds.
      */
@@ -33,12 +30,12 @@ public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>>
     private final Peer peer;
     private final GetchunkMessage message;
 
-    public RestoreChunkCallable(Peer peer, GetchunkMessage message) {
+    public RestoreChunkSupplier(Peer peer, GetchunkMessage message) {
         this.peer = peer;
         this.message = message;
     }
 
-    public Pair<Integer,byte[]> call() throws RestoreProtocolException {
+    public Pair<Integer,byte[]> get() {
         byte[] chunk = null;
 
         for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
@@ -104,7 +101,7 @@ public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>>
 
         }
 
-        if(chunk == null) throw new RestoreProtocolException("Could not restore chunk " + message.getChunkID());
+        if(chunk == null) throw new CompletionException(new RestoreProtocolException("Could not restore chunk " + message.getChunkID()));
 
         return new Pair<>(message.getChunkNo(), chunk);
     }
