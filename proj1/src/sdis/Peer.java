@@ -544,16 +544,16 @@ public class Peer implements PeerInterface {
          * @brief Request a chunk.
          *
          * @param message   GetChunkMessage that will be broadcast, asking for a chunk
+         * @param millis    Number of milliseconds to wait for the 
          * @return          Promise of a chunk
          * @throws IOException  If send fails
          */
-        public Future<byte[]> request(GetchunkMessage message) throws IOException {
+        public Future<byte[]> request(GetchunkMessage message, long millis) throws IOException {
             getPeer().send(message);
             ArrayList<Byte> dataList = new ArrayList<>();
             map.put(message.getChunkID(), dataList);
-            return Peer.getExecutor().submit(() -> {
+            return Peer.getExecutor().schedule(() -> {
                 synchronized (dataList) {
-                    while(dataList.size() == 0) dataList.wait();
                     byte[] ret;
                     ret = new byte[dataList.size()];
                     for (int i = 0; i < dataList.size(); ++i)
@@ -561,7 +561,7 @@ public class Peer implements PeerInterface {
                     map.remove(message.getChunkID());
                     return ret;
                 }
-            });
+            }, millis, TimeUnit.MILLISECONDS);
         }
 
         /**
