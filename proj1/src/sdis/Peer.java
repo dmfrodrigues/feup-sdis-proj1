@@ -325,6 +325,11 @@ public class Peer implements PeerInterface {
                 message.process(getPeer());
         }
 
+        /**
+         * @brief Register that a DELETED message was received.
+         *
+         * @param deletedMessage Deleted message to be registered
+         */
         public void register(DeletedMessage deletedMessage) {
             synchronized( getPeer().getFileTable().getFileStoredByPeers(deletedMessage.getFileId())) {
                 getPeer().getFileTable().removePeerFromFileStored(deletedMessage.getFileId(), deletedMessage.getSenderId());
@@ -332,6 +337,16 @@ public class Peer implements PeerInterface {
             }
         }
 
+
+        /**
+         * @brief Get a future relative to how many peers are left to delete a file.
+         *
+         * Returns after a period of millis milliseconds or when all Deleted messages needed are received.
+         *
+         * @param deleteMessage         DELETE message to check for Deleted messages
+         * @param millis                Maximum time to wait for the Deleted messages
+         * @return int
+         */
         public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
             synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
                 return getPeer().getExecutor().submit(() -> {
@@ -350,6 +365,11 @@ public class Peer implements PeerInterface {
             }
         }
 
+        /**
+         * @brief Returns when there are no peers left to delete file ana notifies it.
+         *
+         * @param peersThatNotDeleted Set of peers remaining to delete file
+         */
         private Future<Integer> resolveWhenAllPeersDeleted(Set<Integer> peersThatNotDeleted){
             return getPeer().getExecutor().submit(() -> {
                 synchronized(peersThatNotDeleted){
