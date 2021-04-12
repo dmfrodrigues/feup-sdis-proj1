@@ -77,8 +77,8 @@ sleep 1
 timeout $TIMEOUT java PeerDriver $VERSION2 3 service3 $MC_ADDR $MC_PORT $MDB_ADDR $MDB_PORT $MDR_ADDR $MDR_PORT > /dev/null & PID3=$!
 sleep 2
 
-timeout $TIMEOUT java TestApp service1 BACKUP InRelease 1
-sleep 4
+timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
+sleep 40
 
 # in the end, 3 must have deleted the two first backed up files
 # same as test 3 but using different peer versions
