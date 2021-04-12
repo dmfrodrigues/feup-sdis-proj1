@@ -5,6 +5,8 @@ Enhancements are incremental; i.e., an enhancement implemented in a certain vers
 
 We defined a scheduled executor for each peer with 100 threads, which solves the issue of thread creation/deletion overhead. We picked a large number because most threads are not in use or are blocked waiting for other calls, so the actual number of running threads in CPU at each instant is relatively small.
 
+Versions 1.0 to 1.4 interoperate with peers abiding to the guidelines, while version 1.5 is as asynchronous as possible (each chunk operation in backup and restore operations is processed in parallel and asynchronously), which means it does not interoperate with abiding peers which process chunks sequentially.
+
 ## One thread per multicast channel
 
 By extending `Runnable` with generic class `SocketHandler` to handle incoming messages from a socket, and specializing `ControlSocketHandler`, `DataBroadcastSocketHandler` and `DataRecoverySocketHandler`, we can run the socket handlers in different threads. We could have avoided using an MDR handler as an initiator peer always knows it will receive packets on MDR only after sending a `GETCHUNK` message, but since there were many similarities with the way MDB works we decided to keep an uniform implementation.
@@ -49,20 +51,17 @@ This method has the main advantage that it does not require the creation or modi
 
 This method is expected to work the best in networks with least latency, as the guarantee that only as many peers with back-up the chunk as required is only valid if all peers receive messages instantly. This implies in high-latency networks the real replication degree will be quite larger than required.
 
-This enhancement is implemented in version 1.2, and although we tested over a same-computer network the latency was appreciable (around 100ms), which meant that, in a network with 5 peers, one of the peers requesting to back-up a chunk with replication degree 2 would often lead to 3 peers backing-up the chunk.
+This enhancement is implemented in version 1.3, and although we tested over a same-computer network the latency was appreciable (around 100ms), which meant that, in a network with 5 peers, one of the peers requesting to back-up a chunk with replication degree 2 would often lead to 3 peers backing-up the chunk.
 
 ### Reclaim space from excessive backing-up
 
 After the initiator peer waits for a certain time period (starting in the required 1000ms), it must count how many `STORED` messages it received relating to the chunk it just backed-up, so it can infer if the required replication degree has been met. However, from the `STORED` messages it receives, it can infer which peers backed-up the chunk, and if it notices there have been more peers backing-up than required, it can notify a certain number of them so they release the space they inadvertently used to store the chunk.
 
-For that, we send over MC an `UNSTORE` message, with format:
+For that, we send over MC an `UNSTORE` message, which means the initiator peer with ID `<SenderId>` is notifying the peer with ID `<DestinationId>` that it should unstore a certain chunk. It is implemented in version 1.2, and has the following format:
 
 ```
 <Version> UNSTORE <SenderId> <FileId> <ChunkNo> <DestinationId> <CRLF><CRLF>
 ```
-
-which means the initiator peer with ID `<SenderId>` is notifying the peer with ID `<DestinationId>` that it should unstore a certain chunk.
-This enhancement is implemented in version 1.1.
 
 Curiously, the previous enhancement improves the performance of this enhancement, as it first reduces the number of peers that backed-up the file without needing to, and this enhancement just solves those cases where latency is too high.
 
@@ -86,6 +85,8 @@ This requires a new message `GETCHUNKTCP` so we have a guarantee other implement
 which instructs all peers that have the requested chunk to try to connect to the socket with IP `<IP>` and port `<Port>`, and send the chunk.
 
 The initiator will first multicast a `GETCHUNKTCP` message and try to get the chunk from the TCP connection. To maintain interoperability, the initiator must use the original protocol after it fails to find any peer that is able to connect to the TCP socket.
+
+This enhancement is implemented in version 1.4.
 
 ## Deletion enhancements
 
