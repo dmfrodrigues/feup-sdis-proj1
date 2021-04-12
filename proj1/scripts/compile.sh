@@ -8,7 +8,7 @@
 
 #javac -d build */*.java
 
-javac -d ../build *.java sdis/*.java sdis/*/*.java
+javac -d build *.java sdis/*.java sdis/*/*.java
 
 # If you are using jar files, and these must be in some particular
 #  place under the build tree, you should copy/move those jar files.
