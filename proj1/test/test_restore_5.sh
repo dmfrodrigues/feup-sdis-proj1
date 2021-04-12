@@ -55,7 +55,7 @@ timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
 sleep 40
 rm ChangeLog
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
-sleep 30
+sleep 40
 test "test-restore-5-03" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1

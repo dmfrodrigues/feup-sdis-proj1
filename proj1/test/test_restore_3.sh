@@ -49,7 +49,7 @@ echo "Started peer with PID $PID5"
 sleep 1
 
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
-sleep 20
+sleep 40
 test "test-restore-3-01" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1
