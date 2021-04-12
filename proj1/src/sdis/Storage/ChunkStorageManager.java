@@ -1,10 +1,20 @@
 package sdis.Storage;
 
-import java.io.*;
-import java.nio.file.Files;
+import sdis.Peer;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * Manage peer chunk storage.
@@ -12,6 +22,8 @@ import java.util.Objects;
  * There should be at most one instance of this class.
  */
 public class ChunkStorageManager {
+    private static final int BUFFER_SIZE = 80000;
+
     private int max_size;
     private final String path;
 
@@ -40,19 +52,26 @@ public class ChunkStorageManager {
     }
 
     public boolean hasChunk(String chunkID){
-        for(File chunk: this.getChunks()){
-            if(chunk.getName().equals(chunkID))
-                return true;
-        }
-        return false;
+        File file = new File(path + "/" + chunkID);
+        return file.canRead();
     }
 
-    public byte[] getChunk(String chunkID) throws IOException {
-        for(File chunk: this.getChunks()){
-            if(chunk.getName().equals(chunkID))
-                return Files.readAllBytes(chunk.toPath());
-        }
-        return null;
+    public CompletableFuture<byte[]> getChunk(String chunkID) throws IOException {
+        AsynchronousFileChannel is = AsynchronousFileChannel.open(Path.of(path + "/" + chunkID), StandardOpenOption.READ);
+        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        Future<Integer> f = is.read(buffer, 0);
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                int size = f.get();
+                is.close();
+                byte[] bufferArray = new byte[size];
+                buffer.flip();
+                buffer.get(bufferArray, 0, size);
+                return bufferArray;
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }, Peer.getExecutor());
     }
 
     public int getCapacity() {
@@ -87,18 +106,16 @@ public class ChunkStorageManager {
      * @param chunk Byte array of the chunk to be stored.
      * @return true if successful, false otherwise.
      **/
-    public boolean saveChunk(String id, byte[] chunk){
+    public boolean saveChunk(String id, byte[] chunk) throws IOException {
         if(getMemoryUsed() + chunk.length > max_size) return false;
-
+        ByteBuffer buffer = ByteBuffer.wrap(chunk);
+        AsynchronousFileChannel os = AsynchronousFileChannel.open(Path.of(path + "/" + id), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         try {
-            OutputStream os = new FileOutputStream(path + "/" + id);
-            os.write(chunk);
-            os.close();
+            os.write(buffer, 0).get();
+        } catch (InterruptedException | ExecutionException e) {
+            return false;
         }
-        catch (Exception e) {
-            System.out.println("Exception: " + e);
-        }
-
+        os.close();
         return true;
     }
 

@@ -11,12 +11,9 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
-public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>> {
+public class RestoreChunkSupplier extends ProtocolSupplier<Pair<Integer,byte[]>> {
     /**
      * Timeout of waiting for a CHUNK response to a GETCHUNK message, in milliseconds.
      */
@@ -33,12 +30,12 @@ public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>>
     private final Peer peer;
     private final GetchunkMessage message;
 
-    public RestoreChunkCallable(Peer peer, GetchunkMessage message) {
+    public RestoreChunkSupplier(Peer peer, GetchunkMessage message) {
         this.peer = peer;
         this.message = message;
     }
 
-    public Pair<Integer,byte[]> call() throws RestoreProtocolException {
+    public Pair<Integer,byte[]> get() {
         byte[] chunk = null;
 
         for(int attempt = 0; attempt < ATTEMPTS && chunk == null; ++attempt) {
@@ -71,14 +68,14 @@ public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>>
                     serverSocket.close();
                     if (chunk != null) break;
                 } catch (IOException e) {
-                    System.out.println(message.getChunkID() + "\t| Failed to establish a connection: " + e.toString());
+                    System.out.println(message.getChunkID() + "\t| Failed to establish a connection: " + e);
                 }
             }
 
             // Make request
             Future<byte[]> f;
             try {
-                f = peer.getDataRecoverySocketHandler().request(message);
+                f = peer.getDataRecoverySocketHandler().request(message, TIMEOUT_MILLIS);
             } catch (IOException e) {
                 System.err.println(message.getChunkID() + "\t| Failed to make request, trying again");
                 e.printStackTrace();
@@ -88,23 +85,21 @@ public class RestoreChunkCallable extends ProtocolCallable<Pair<Integer,byte[]>>
 
             // Wait for request to be satisfied
             try {
-                chunk = f.get(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+                chunk = f.get();
             } catch (InterruptedException e) {
                 System.err.println(message.getChunkID() + "\t| Future execution interrupted, trying again");
                 e.printStackTrace();
             } catch (ExecutionException e) {
                 System.err.println(message.getChunkID() + "\t| Future execution caused an exception, trying again");
                 e.printStackTrace();
-            } catch (TimeoutException e) {
-                f.cancel(true);
-                System.err.println(message.getChunkID() + "\t| Timed out waiting for CHUNK, trying again");
-                e.printStackTrace();
             }
 
-
+            if(chunk == null){
+                System.err.println(message.getChunkID() + "\t| Timed out waiting for CHUNK, trying again");
+            }
         }
 
-        if(chunk == null) throw new RestoreProtocolException("Could not restore chunk " + message.getChunkID());
+        if(chunk == null) throw new CompletionException(new RestoreProtocolException("Could not restore chunk " + message.getChunkID()));
 
         return new Pair<>(message.getChunkNo(), chunk);
     }

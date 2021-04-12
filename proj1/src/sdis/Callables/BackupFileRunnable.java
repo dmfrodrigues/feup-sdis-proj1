@@ -4,12 +4,13 @@ import sdis.Messages.PutchunkMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkIterator;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
-public class BackupFileCallable extends BaseProtocolCallable {
+public class BackupFileRunnable extends ProtocolRunnable {
     /**
      * Maximum amount of chunk backup futures that can be running at a given time.
      *
@@ -23,56 +24,66 @@ public class BackupFileCallable extends BaseProtocolCallable {
     private final FileChunkIterator fileChunkIterator;
     private final int replicationDegree;
 
-    public BackupFileCallable(Peer peer, FileChunkIterator fileChunkIterator, int replicationDegree){
+    public BackupFileRunnable(Peer peer, FileChunkIterator fileChunkIterator, int replicationDegree){
         this.peer = peer;
         this.fileChunkIterator = fileChunkIterator;
         this.replicationDegree = replicationDegree;
 
-        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 10 : 1);
+        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 30 : 1);
     }
 
     @Override
-    public Void call() {
+    public void run() {
         int n = fileChunkIterator.length();
 
         peer.getFileTable().setFileDesiredRepDegree(fileChunkIterator.getFileId(), replicationDegree);
 
-        LinkedList<Future<Void>> futureList = new LinkedList<>();
+        LinkedList<CompletableFuture<Void>> futureList = new LinkedList<>();
 
         for(int i = 0; i < n; ++i){
             // Resolve the futures that are already done
-            Iterator<Future<Void>> it = futureList.iterator();
+            Iterator<CompletableFuture<Void>> it = futureList.iterator();
             while(it.hasNext()){
-                Future<Void> f = it.next();
+                CompletableFuture<Void> f = it.next();
                 if(!f.isDone()) continue;
                 it.remove();
-                if (!popFutureList(f)) return null;
+                if (!popFutureList(f)) return;
             }
             // If the queue still has too many elements, pop the first
             while(futureList.size() >= MAX_FUTURE_QUEUE_SIZE) {
-                if (!popFutureList(futureList.remove())) return null;
+                if (!popFutureList(futureList.remove())) return;
             }
             // Add new future
-            byte[] chunk = fileChunkIterator.next();
-            PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), i, replicationDegree, chunk, peer.getDataBroadcastAddress());
-            BackupChunkCallable backupChunkCallable = new BackupChunkCallable(peer, message, replicationDegree);
-            futureList.add(peer.getExecutor().submit(backupChunkCallable));
+            int finalI = i;
+            futureList.add(
+                fileChunkIterator.next()
+                .thenApplyAsync(chunk -> {
+                    PutchunkMessage message = new PutchunkMessage(peer.getId(), fileChunkIterator.getFileId(), finalI, replicationDegree, chunk, peer.getDataBroadcastAddress());
+                    BackupChunkSupplier backupChunkCallable = new BackupChunkSupplier(peer, message, replicationDegree);
+                    backupChunkCallable.get();
+                    return null;
+                }, Peer.getExecutor())
+            );
         }
         // Empty the futures list
         while(!futureList.isEmpty()) {
-            if (!popFutureList(futureList.remove())) return null;
+            if (!popFutureList(futureList.remove())) return;
         }
 
         System.out.println(fileChunkIterator.getFileId() + "\t| Done backing-up file");
 
-        return null;
+        try {
+            fileChunkIterator.close();
+        } catch (IOException e) {
+            System.err.println(fileChunkIterator.getFileId() + "\t| Failed to close file");
+        }
     }
 
-    private boolean popFutureList(Future<Void> f){
+    private boolean popFutureList(CompletableFuture<Void> f){
         try {
             f.get();
         } catch (InterruptedException | ExecutionException e) {
-            System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
+            System.err.println(fileChunkIterator.getFileId() + "\t| Aborting backup of file");
             e.printStackTrace();
             return false;
         }

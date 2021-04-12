@@ -3,9 +3,7 @@ package sdis.Messages;
 import sdis.Peer;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 
 public class GetchunkMessage extends MessageWithChunkNo {
     /**
@@ -31,21 +29,22 @@ public class GetchunkMessage extends MessageWithChunkNo {
         System.out.println(getChunkID() + "\t| Peer " + getSenderId() + " requested chunk");
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
         if(peer.getDataRecoverySocketHandler().sense(this, 400)) return;
-        byte[] chunk;
         try {
-            chunk = peer.getStorageManager().getChunk(getChunkID());
+            peer.getStorageManager().getChunk(getChunkID())
+            .thenApplyAsync(chunk -> {
+                ChunkMessage message = new ChunkMessage(peer.getId(), getFileId(), getChunkNo(), chunk, peer.getDataRecoveryAddress());
+                try {
+                    peer.send(message);
+                } catch (IOException e) {
+                    System.err.println(getChunkID() + "\t| Failed to answer GetchunkMessage with a ChunkMessage");
+                    e.printStackTrace();
+                }
+                System.out.println(message.getChunkID() + "\t| Sent chunk");
+                return null;
+            }, Peer.getExecutor());
         } catch (IOException e) {
-            System.err.println(getChunkID() + "\t| Failed to ask if this peer has chunk with this ID");
-            e.printStackTrace();
-            return;
-        }
-        ChunkMessage message = new ChunkMessage(peer.getId(), getFileId(), getChunkNo(), chunk, peer.getDataRecoveryAddress());
-        try {
-            peer.send(message);
-        } catch (IOException e) {
-            System.err.println(getChunkID() + "\t| Failed to answer GetchunkMessage with a ChunkMessage");
+            System.err.println(getChunkID() + "\t| Failed to find file, although file existance was already checked (INVESTIGATE)");
             e.printStackTrace();
         }
-        System.out.println(message.getChunkID() + "\t| Sent chunk");
     }
 }

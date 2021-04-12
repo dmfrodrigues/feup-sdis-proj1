@@ -3,12 +3,19 @@ package sdis.Storage;
 import sdis.Peer;
 import sdis.Utils.Utils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.function.Consumer;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * @brief File chunk iterator.
@@ -16,14 +23,14 @@ import java.util.function.Consumer;
  * Iterator over chunks of an existing file.
  * Is used to read a file one chunk at a time.
  */
-public class FileChunkIterator implements Iterator<byte[]> {
+public class FileChunkIterator implements Iterator<CompletableFuture<byte[]>> {
     private static final int MAX_LENGTH = 1000000;
 
     private final File file;
     private final int chunkSize;
     private final String fileId;
     byte[] buffer;
-    FileInputStream fileStream;
+    AsynchronousFileChannel fileStream;
 
     /**
      * @brief Construct FileChunkIterator.
@@ -46,7 +53,7 @@ public class FileChunkIterator implements Iterator<byte[]> {
         if(length() > MAX_LENGTH) throw new FileTooLargeException(file);
 
         buffer = new byte[this.chunkSize];
-        fileStream = new FileInputStream(this.file);
+        fileStream = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ);
         fileId = createFileId();
     }
 
@@ -66,11 +73,18 @@ public class FileChunkIterator implements Iterator<byte[]> {
         digest.update(metadata_bytes, 0, metadata_bytes.length);
 
         // Digest file contents
-        InputStream inputStream = new BufferedInputStream(new FileInputStream(file));
-        byte[] buffer = new byte[8192];
-        int count;
-        while ((count = inputStream.read(buffer)) > 0) {
-            digest.update(buffer, 0, count);
+        AsynchronousFileChannel inputStream = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ);
+        ByteBuffer buffer = ByteBuffer.allocate(chunkSize);
+        int count, position = 0;
+        try {
+            while ((count = inputStream.read(buffer, position).get()) > 0) {
+                buffer.flip();
+                digest.update(buffer);
+                buffer.clear();
+                position += count;
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            throw new IOException("Failed to read file contents to create file ID");
         }
         inputStream.close();
 
@@ -98,26 +112,29 @@ public class FileChunkIterator implements Iterator<byte[]> {
     long nextIndex = 0;
 
     @Override
-    public boolean hasNext() {
+    public synchronized boolean hasNext() {
         return nextIndex < length();
     }
 
     @Override
-    public byte[] next() {
-        int size = 0;
-        try {
-            size = fileStream.read(buffer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public synchronized CompletableFuture<byte[]> next() {
+        ByteBuffer buffer = ByteBuffer.allocate(chunkSize);
+        Future<Integer> f = fileStream.read(buffer, nextIndex*chunkSize);
         ++nextIndex;
-        return Arrays.copyOf(buffer, size);
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                int size = f.get();
+                byte[] bufferArray = new byte[size];
+                buffer.flip();
+                buffer.get(bufferArray, 0, size);
+                return bufferArray;
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }, Peer.getExecutor());
     }
 
-    @Override
-    public void forEachRemaining(Consumer<? super byte[]> action) {
-        while(hasNext()){
-            action.accept(next());
-        }
+    public void close() throws IOException {
+        fileStream.close();
     }
 }

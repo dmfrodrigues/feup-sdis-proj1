@@ -4,6 +4,7 @@ import sdis.Peer;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -17,7 +18,7 @@ public class GetchunkTCPMessage extends MessageWithChunkNo {
     /**
      * Address used in version 1.4, IP:PORT
      */
-    private String address;
+    private final String address;
 
     public GetchunkTCPMessage(int senderId, String fileId, int chunkNo, String address, InetSocketAddress inetSocketAddress){
         super("1.4", "GETCHUNKTCP", senderId, fileId, chunkNo, inetSocketAddress);
@@ -49,19 +50,37 @@ public class GetchunkTCPMessage extends MessageWithChunkNo {
         if(!peer.getStorageManager().hasChunk(getChunkID())) return;
 
         // Restore enhancement
+        System.out.println(getChunkID() + "\t| Trying to connect to : "+getHostname()+":"+getPort());
+        Socket socket;
         try {
-            System.out.println(getChunkID() + "\t| Trying to connect to : "+getHostname()+":"+getPort());
-            Socket socket = new Socket(getHostname(), getPort());
-            // send chunk
-            OutputStream output = socket.getOutputStream();
-            byte[] chunk = peer.getStorageManager().getChunk(getChunkID());
-            output.write(chunk);
-            System.out.println(getChunkID() + "\t| Sent Chunk using TCP");
-            socket.close();
+            socket = new Socket(getHostname(), getPort());
+        } catch (ConnectException e) {
+            System.out.println(getChunkID() + "\t| Connection refused");
+            return;
         } catch (IOException e) {
-            System.out.println(getChunkID() + " | Failed to TCP connect and send chunk; " +
-                "tends to be an occasional error, where the server socket has not yet been closed and the peer hasn't realised it yet"
-            );
+            System.err.println(getChunkID() + "\t| Failed to create socket");
+            e.printStackTrace();
+            return;
+        }
+        // send chunk
+        try {
+            peer.getStorageManager().getChunk(getChunkID())
+            .thenApplyAsync(chunk -> {
+                try {
+                    OutputStream output = socket.getOutputStream();
+                    output.write(chunk);
+                    System.out.println(getChunkID() + "\t| Sent Chunk using TCP");
+                    socket.close();
+                } catch (IOException e) {
+                    System.out.println(getChunkID() + "\t| Failed to TCP connect and send chunk; " +
+                            "tends to be an occasional error, where the server socket has not yet been closed and the peer hasn't realised it yet"
+                    );
+                }
+                return null;
+            });
+        } catch (IOException e) {
+            System.err.println(getChunkID() + "\t| Failed to find file, although file existence was already checked (INVESTIGATE)");
+            e.printStackTrace();
         }
     }
 }

@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.*;
+import java.nio.file.NoSuchFileException;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -42,7 +43,7 @@ public class Peer implements PeerInterface {
 
     private final Random random = new Random(System.currentTimeMillis());
 
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(30);
+    private static final ScheduledExecutorService executor = Executors.newScheduledThreadPool(100);
 
     public Peer(
             String version,
@@ -54,6 +55,7 @@ public class Peer implements PeerInterface {
         // Store arguments
         this.version = version;
         this.id = id;
+        System.out.println("Starting peer " + this.id + ", version " + version);
 
         this.controlAddress = controlAddress;
         this.dataBroadcastAddress = dataBroadcastAddress;
@@ -99,7 +101,7 @@ public class Peer implements PeerInterface {
         return random;
     }
 
-    public ScheduledExecutorService getExecutor(){
+    public static ScheduledExecutorService getExecutor(){
         return executor;
     }
 
@@ -182,13 +184,13 @@ public class Peer implements PeerInterface {
         FileChunkIterator fileChunkIterator;
         try {
             fileChunkIterator = new FileChunkIterator(file);
-        } catch (FileNotFoundException e) {
+        } catch (NoSuchFileException e) {
             System.err.println("File " + pathname + " not found");
             return;
         }
         getFileTable().insert(file.getName(), fileChunkIterator.getFileId(), fileChunkIterator.length());
-        BackupFileCallable callable = new BackupFileCallable(this, fileChunkIterator, replicationDegree);
-        executor.submit(callable);
+        BackupFileRunnable backupFileRunnable = new BackupFileRunnable(this, fileChunkIterator, replicationDegree);
+        CompletableFuture.runAsync(backupFileRunnable);
     }
 
     /**
@@ -198,8 +200,8 @@ public class Peer implements PeerInterface {
      *
      * @param pathname  Pathname of file to be restored
      */
-    public void restore(String pathname) throws FileNotFoundException {
-        RestoreFileCallable callable = new RestoreFileCallable(this, pathname);
+    public void restore(String pathname) throws IOException {
+        RestoreFileRunnable callable = new RestoreFileRunnable(this, pathname);
         executor.submit(callable);
     }
 
@@ -209,7 +211,7 @@ public class Peer implements PeerInterface {
      * @param pathname  Pathname of file to be deleted over all peers
      */
     public void delete(String pathname) {
-        DeleteFileCallable callable = new DeleteFileCallable(this, pathname);
+        DeleteFileRunnable callable = new DeleteFileRunnable(this, pathname);
         executor.submit(callable);
     }
 
@@ -219,7 +221,7 @@ public class Peer implements PeerInterface {
      * @param space_kb  Amount of space, in kilobytes (KB, K=1000)
      */
     public void reclaim(int space_kb) {
-        ReclaimCallable callable = new ReclaimCallable(this, space_kb);
+        ReclaimRunnable callable = new ReclaimRunnable(this, space_kb);
         executor.submit(callable);
     }
 
@@ -227,9 +229,9 @@ public class Peer implements PeerInterface {
      * Get state information on the peer.
      */
     public String state() {
-        StateCallable callable = new StateCallable(this, storageManager);
-        callable.call();
-        return callable.getStatus();
+        StateRunnable stateRunnable = new StateRunnable(this, storageManager);
+        stateRunnable.run();
+        return stateRunnable.getStatus();
     }
 
     public void send(Message message) throws IOException {
@@ -273,7 +275,7 @@ public class Peer implements PeerInterface {
                     socket.receive(packet);
                     Message message = messageFactory.factoryMethod(packet);
                     if(message.getSenderId() != peer.getId())
-                        getPeer().getExecutor().submit(() -> handle(message));
+                        Peer.getExecutor().submit(() -> handle(message));
 
                     if(peer.getFileTable().getPeersPendingDelete().containsKey(message.getSenderId())){
                         Iterator<String> i = peer.getFileTable().getPeersPendingDelete().get(message.getSenderId()).iterator();
@@ -349,8 +351,9 @@ public class Peer implements PeerInterface {
          */
         public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
             synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
-                return getPeer().getExecutor().submit(() -> {
-                    Future<Integer> f = resolveWhenAllPeersDeleted(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()));
+                return Peer.getExecutor().submit(() -> {
+                    Set<Integer> peersThatNotDeleted = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId());
+                    Future<Integer> f = resolveWhenAllPeersDeleted(peersThatNotDeleted);
                     Integer ret;
                     try {
                         ret = f.get(millis, TimeUnit.MILLISECONDS);
@@ -371,7 +374,7 @@ public class Peer implements PeerInterface {
          * @param peersThatNotDeleted Set of peers remaining to delete file
          */
         private Future<Integer> resolveWhenAllPeersDeleted(Set<Integer> peersThatNotDeleted){
-            return getPeer().getExecutor().submit(() -> {
+            return Peer.getExecutor().submit(() -> {
                 synchronized(peersThatNotDeleted){
                     while(peersThatNotDeleted.size() > 0) {
                         try {
@@ -396,8 +399,7 @@ public class Peer implements PeerInterface {
                 if (storedMessageMap.containsKey(chunkId)){
                     Set<Integer> peersThatStored = storedMessageMap.get(chunkId);
                     synchronized (peersThatStored) {
-                        peersThatStored.add(storedMessage.getSenderId());
-                        peersThatStored.notifyAll();
+                        storedMessageMap.get(chunkId).add(storedMessage.getSenderId());
                     }
                 }
             }
@@ -414,14 +416,14 @@ public class Peer implements PeerInterface {
          *
          * @param m         PUTCHUNK message to check answers for
          * @param millis    Maximum time to wait for the required number of STORED
-         * @return
+         * @return          Future of the number of STORED messages over that period
          */
         public Future<Integer> checkStored(PutchunkMessage m, int millis){
             synchronized(storedMessageMap){
                 String chunkId = m.getChunkID();
                 Set<Integer> peersThatStored = new HashSet<>();
                 storedMessageMap.put(chunkId, peersThatStored);
-                return getPeer().getExecutor().schedule(() -> {
+                return Peer.getExecutor().schedule(() -> {
                     synchronized (peersThatStored){
                         return peersThatStored.size();
                     }
@@ -441,7 +443,7 @@ public class Peer implements PeerInterface {
          *
          * @param m         PUTCHUNK message to check answers for
          * @param millis    Maximum time to wait for the required number of STORED
-         * @return
+         * @return          Future of the set of peers that STORED during that time period
          */
         public Future<Set<Integer>> checkWhichPeersStored(PutchunkMessage m, int millis){
             String chunkId = m.getChunkID();
@@ -449,7 +451,7 @@ public class Peer implements PeerInterface {
             synchronized(storedMessageMap) {
                 storedMessageMap.put(chunkId, peersThatStored);
             }
-            return getPeer().getExecutor().schedule(() -> {
+            return Peer.getExecutor().schedule(() -> {
                 synchronized (peersThatStored){
                     return (HashSet<Integer>) peersThatStored.clone();
                 }
@@ -478,8 +480,7 @@ public class Peer implements PeerInterface {
                     ArrayList<Byte> dataList = map.get(chunkId);
                     synchronized (dataList) {
                         dataList.clear();
-                        for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
-                        dataList.notifyAll();
+                        for (byte b : data) dataList.add(b);
                     }
                 }
             }
@@ -500,14 +501,14 @@ public class Peer implements PeerInterface {
                 map.put(removedMessage.getChunkID(), dataList);
             }
             try {
-                return getPeer().getExecutor().schedule(()->{
+                return Peer.getExecutor().schedule(()->{
                     boolean ret;
                     synchronized (dataList){ ret = !dataList.isEmpty(); }
                     synchronized (map){ map.remove(removedMessage.getChunkID()); }
                     return ret;
                 }, timeout, TimeUnit.MILLISECONDS).get();
             } catch (InterruptedException | ExecutionException e) {
-                System.err.println(removedMessage.getChunkID() + " | An exception occured while sensing to answers to REMOVED");
+                System.err.println(removedMessage.getChunkID() + "\t| An exception occured while sensing to answers to REMOVED");
                 e.printStackTrace();
                 return false;
             }
@@ -551,8 +552,7 @@ public class Peer implements PeerInterface {
                     ArrayList<Byte> dataList = map.get(chunkId);
                     synchronized (dataList) {
                         dataList.clear();
-                        for (int i = 0; i < data.length; ++i) dataList.add(data[i]);
-                        dataList.notifyAll();
+                        for (byte b : data) dataList.add(b);
                     }
                 }
             }
@@ -562,16 +562,16 @@ public class Peer implements PeerInterface {
          * @brief Request a chunk.
          *
          * @param message   GetChunkMessage that will be broadcast, asking for a chunk
+         * @param millis    Number of milliseconds to wait for the 
          * @return          Promise of a chunk
          * @throws IOException  If send fails
          */
-        public Future<byte[]> request(GetchunkMessage message) throws IOException {
+        public Future<byte[]> request(GetchunkMessage message, long millis) throws IOException {
             getPeer().send(message);
             ArrayList<Byte> dataList = new ArrayList<>();
             map.put(message.getChunkID(), dataList);
-            return getPeer().getExecutor().submit(() -> {
+            return Peer.getExecutor().schedule(() -> {
                 synchronized (dataList) {
-                    while(dataList.size() == 0) dataList.wait();
                     byte[] ret;
                     ret = new byte[dataList.size()];
                     for (int i = 0; i < dataList.size(); ++i)
@@ -579,7 +579,7 @@ public class Peer implements PeerInterface {
                     map.remove(message.getChunkID());
                     return ret;
                 }
-            });
+            }, millis, TimeUnit.MILLISECONDS);
         }
 
         /**
@@ -596,14 +596,14 @@ public class Peer implements PeerInterface {
                 map.put(getchunkMessage.getChunkID(), dataList);
             }
             try {
-                return getPeer().getExecutor().schedule(()->{
+                return Peer.getExecutor().schedule(()->{
                     boolean ret;
                     synchronized (dataList){ ret = !dataList.isEmpty(); }
                     synchronized (map){ map.remove(getchunkMessage.getChunkID()); }
                     return ret;
                 }, timeout, TimeUnit.MILLISECONDS).get();
             } catch (InterruptedException | ExecutionException e) {
-                System.err.println(getchunkMessage.getChunkID() + " | An exception occured while sensing to answers to GETCHUNK");
+                System.err.println(getchunkMessage.getChunkID() + "\t| An exception occured while sensing to answers to GETCHUNK");
                 e.printStackTrace();
                 return false;
             }

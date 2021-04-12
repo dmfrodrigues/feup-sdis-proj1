@@ -52,10 +52,10 @@ test "test-restore-6-02" "cat Release" "cat testfiles/Release"
 
 cp testfiles/ChangeLog .
 timeout $TIMEOUT java TestApp service1 BACKUP ChangeLog 1
-sleep 10
+sleep 5
 rm ChangeLog
 timeout $TIMEOUT java TestApp service1 RESTORE ChangeLog
-sleep 10
+sleep 5
 test "test-restore-6-03" "cat ChangeLog" "cat testfiles/ChangeLog"
 
 kill $PID1

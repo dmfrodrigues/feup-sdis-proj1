@@ -63,8 +63,13 @@ public class PutchunkMessage extends MessageWithBody {
 
         // If the execution is here, then this peer did not get enough STORED messages, so it will store the chunk itself
         if(!peer.getStorageManager().hasChunk(chunkId)) {
-            if (!peer.getStorageManager().saveChunk(chunkId, getBody()))
+            try {
+                if (!peer.getStorageManager().saveChunk(chunkId, getBody())) return;
+            } catch (IOException e) {
+                System.err.println(getChunkID() + "\t| Failed to save chunk");
+                e.printStackTrace();
                 return;
+            }
             System.out.println(chunkId + "\t| Saved chunk");
 
             peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);

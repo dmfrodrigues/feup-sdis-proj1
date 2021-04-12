@@ -7,22 +7,22 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class DeleteFileCallable extends BaseProtocolCallable {
+public class DeleteFileRunnable extends ProtocolRunnable {
 
     private final Peer peer;
     private final String pathname;
 
-    public DeleteFileCallable(Peer peer, String pathname){
+    public DeleteFileRunnable(Peer peer, String pathname){
         this.peer = peer;
         this.pathname = pathname;
     }
 
     @Override
-    public Void call() {
+    public void run() {
 
         if(!peer.getFileTable().hasFile(pathname)){
             System.out.println("File " + pathname + " does not exist in peer table");
-            return null;
+            return;
         }
 
         DeleteMessage message = new DeleteMessage(peer.getId(),
@@ -42,7 +42,7 @@ public class DeleteFileCallable extends BaseProtocolCallable {
             Future<Integer> f = peer.getControlSocketHandler().checkDeleted(message, 1000);
 
             if(peer.getFileTable().getFileStoredByPeers(peer.getFileTable().getFileID(pathname)) == null)
-                return null;
+                return;
 
             int notDeleted = 0;
             try {
@@ -61,7 +61,5 @@ public class DeleteFileCallable extends BaseProtocolCallable {
             }
 
         }
-
-        return null;
     }
 }
