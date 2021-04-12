@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TIMEOUT=70
+TIMEOUT=100
 VERSION=1.0
 MC_ADDR=230.0.0.1
 MC_PORT=8888
@@ -13,10 +13,8 @@ test () {
     echo -en "$1\t"
     expected=$($3)
     output=$($2)
-    if [ $? == 0 ] && [ "$output" == "$expected" ]; then
-        echo -e "\e[1m\e[32m[Passed]\e[0m"
-    else
-        echo -e "\e[1m\e[31m[Failed]\e[0m"
+    if [ $? != 0 ]; then
+        echo -e "\e[1m\e[31m[Failed]\e[0m: return code is not zero"
         kill $PID1
         kill $PID2
         kill $PID3
@@ -24,6 +22,18 @@ test () {
         kill $PID5
         exit 1
     fi
+    echo $expected > expected.txt
+    echo $output > output.txt
+    if ! diff expected.txt output.txt > /dev/null ; then
+        echo -e "\e[1m\e[31m[Failed]\e[0m: expected different from output"
+        kill $PID1
+        kill $PID2
+        kill $PID3
+        kill $PID4
+        kill $PID5
+        exit 1
+    fi
+    echo -e "\e[1m\e[32m[Passed]\e[0m"
 }
 
 cd build
