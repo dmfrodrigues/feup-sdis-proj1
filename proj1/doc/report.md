@@ -2,7 +2,33 @@ This report addresses the enhancements made to the first project of the course S
 
 Enhancements are incremental; i.e., if an enhancement was implemented in a certain version, then it is used in that version and in all posterior versions.
 
-# Backup enhancements
+# Parallelism enhancements
+
+We defined a scheduled executor for each peer with 30 threads, which immediately solves the issue of thread creation/deletion overhead. We picked a large number because most of the time these threads are not in use or are blocked waiting for other calls, so the number of threads being used may be large but the actual number of running threads in CPU is relatively small and only for short periods.
+
+## One thread per multicast channel
+
+We implemented one thread per multicast channel, by extending `Runnable` with a generic class `SocketHandler` to handle incoming messages from a single socket, and inheriting `ControlSocketHandler`, `DataBroadcastSocketHandler` and `DataRecoverySocketHandler` from that class to run them on separate threads. We could have avoided to use `DataRecoverySocketHandler` as an initiator peer always knows it will receive packets on MDR only after sending a `GETCHUNK` message, but since there were many similarities in the way MDB and MDR work we decided to keep an uniform implementation.
+
+## Many protocol instances at a time
+
+This is done using a specialized `Callable` instance for each protocol instance. We extended `Callable` with class `BaseProtocolCallable` (which cannot throw exceptions), which in turn we extended with protocol-specific classes `BackupFileCallable`, `DeleteFileCallable`, `RestoreFileCallable`, `ReclaimCallable` and `StateCallable`; each protocol callable instance has all the information it needs to run, and all protocol instances cooperate with each of the three shared socket handlers in a peer to perform their jobs, and the shared sockets have appropriate synchronization mechanisms (mostly `synchronized` blocks) to avoid race conditions.
+
+`BackupFileCallable`, `DeleteFileCallable`, `RestoreFileCallable` and `ReclaimCallable` instances are executed concurrently by the peer executer when created upon request from the `TestApp` and the `TestApp` immediately returns, but for `StateCallable` the `TestApp` only returns when it receives all state information and prints it, because we considered it would be more useful to have the `TestApp` wait to get the results from the state operation, while the other operations were most interesting if running in the background.
+
+## Processing different messages received on the same channel at the same time
+
+`SocketHandler` is a wrapper which runs an infinite cycle blocking on `DatagramSocket#receive(DatagramPacket)`, waiting for messages; when one arrives, the `SocketHandler` calls its abstract function `handle(Message)`, which each specialized socket handler must implement, usually just making some simple checks (like message type) and then calling `Message#process(Peer)`. Thus, all we had to do was to have the `SocketHandler` create a callable on-the-fly where he calls `handle(Message)` and submit that to the peer executor, instead of the socket handler thread executing `handle(Message)` itself.
+
+## No `Thread.sleep()`
+
+We do not use `Thread.sleep()` anywhere in our code, thus avoiding busy waits altogether; instead we used scheduled futures and used `Future#get()`. We additionally invested efforts into reducing the number of running threads to the bare minimum (e.g., not having futures wait for other futures), particularly in avoiding the use of empty scheduled futures (which can be used as a valid and non-busy replacement for `Thread.sleep()`, but still take up thread resources).
+
+Among the two approaches to asynchronous operations (futures and non-busy blocking on future resolution, vs fully-asynchronous future chaining and `then`-functions), the first takes more threads (because the main thread will block while waiting for the thread that is running the future) but is also more readable as it closely resembles synchronous code, and since we are not very familiar with the way `then`-functions and promises work with Java we preferred the first option.
+
+# Protocol enhancements
+
+## Backup enhancements
 
 > *This scheme can deplete the backup space rather rapidly, and cause too much activity on the nodes once that space is full. Can you think of an alternative scheme that ensures the desired replication degree, avoids these problems, and, nevertheless, can interoperate with peers that execute the chunk backup protocol described above?*
 
@@ -11,7 +37,7 @@ This is because a non-initiator peer only processes the `PUTCHUNK` message it re
 
 We devised two complementary solutions for this problem.
 
-## Make wait time useful
+### Make wait time useful
 
 Instead of saving the chunk and waiting for a random time period from 0 to 400ms before sending a `STORED` (which is currently only serving the purpose of avoiding packet collisions), a non-initiator peer can instead wait for that same random time period while listening to MC for arriving `STORED` messages, and by having the count of `STORED` messages that arrived by the end of the wait period it can either:
 
@@ -24,7 +50,7 @@ This method is expected to work the best in networks with least latency, as the 
 
 This enhancement is implemented in version 1.2, and although we tested over a same-computer network the latency was appreciable (around 100ms), which meant that, in a network with 5 peers, one of the peers requesting to back-up a chunk with replication degree 2 would often lead to 3 peers backing-up the chunk.
 
-## Reclaim space from excessive backing-up
+### Reclaim space from excessive backing-up
 
 After the initiator peer waits for a certain time period (starting in the required 1000ms), it must count how many `STORED` messages it received relating to the chunk it just backed-up, so it can infer if the required replication degree has been met. However, from the `STORED` messages it receives, it can infer which peers backed-up the chunk, and if it notices there have been more peers backing-up than required, it can notify a certain number of them so they release the space they inadvertently used to store the chunk.
 
@@ -41,7 +67,7 @@ Curiously, the previous enhancement improves the performance of this enhancement
 
 This enhancement could otherwise be made in a way that is less expensive in terms of disk usage, in which the initiator first multicasts a request for peers to tell if they are online (`GETONLINE`), the peers would answer they are online (`ISONLINE`) and indicate in the header if they can store a chunk or not, and the initiator would pick some peers to send the chunk to; the main disadvantage is that it would require two new messages, and either change `PUTCHUNK` to have a destination ID or make a TCP connection to each destination peer.
 
-# Restore enhancements
+## Restore enhancements
 
 > *If the files are large, this protocol may not be desirable: only one peer needs to receive the chunks, but we are using a multicast channel for sending all the file's chunks. Can you think of a change to the protocol that would eliminate this problem, and yet interoperate with non-initiator peers that implement the protocol described in this section? Your enhancement **must use TCP** to get full credit.*
 
@@ -60,7 +86,7 @@ which instructs all peers that have the requested chunk to try to connect to the
 
 The initiator will first multicast a `GETCHUNKTCP` message and try to get the chunk from the TCP connection. To maintain interoperability, the initiator must use the original protocol after it fails to find any peer that is able to connect to the TCP socket.
 
-# Deletion enhancements
+## Deletion enhancements
 
 > *If a peer that backs up some chunks of the file is not running at the time the initiator peer sends a `DELETE` message for that file, the space used by these chunks will never be reclaimed. Can you think of a change to the protocol, possibly including additional messages, that would allow to reclaim storage space even in that event?*
 
