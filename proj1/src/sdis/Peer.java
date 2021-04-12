@@ -350,40 +350,12 @@ public class Peer implements PeerInterface {
          * @return int
          */
         public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
-            synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
-                return Peer.getExecutor().submit(() -> {
-                    Set<Integer> peersThatNotDeleted = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId());
-                    Future<Integer> f = resolveWhenAllPeersDeleted(peersThatNotDeleted);
-                    Integer ret;
-                    try {
-                        ret = f.get(millis, TimeUnit.MILLISECONDS);
-                    } catch (TimeoutException e) {
-                        f.cancel(true);
-                        synchronized (getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
-                            ret = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()).size();
-                        }
-                    }
-                    return ret;
-                });
-            }
-        }
-
-        /**
-         * @brief Returns when there are no peers left to delete file.
-         *
-         * @param peersThatNotDeleted Set of peers remaining to delete file
-         */
-        private Future<Integer> resolveWhenAllPeersDeleted(Set<Integer> peersThatNotDeleted){
-            return Peer.getExecutor().submit(() -> {
-                synchronized(peersThatNotDeleted){
-                    while(peersThatNotDeleted.size() > 0) {
-                        try {
-                            peersThatNotDeleted.wait();
-                        } catch (InterruptedException ignored) {}
-                    }
-                    return 0; // No peers left to delete
+            Set<Integer> peersThatNotDeleted = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId());
+            return Peer.getExecutor().schedule(() -> {
+                synchronized (peersThatNotDeleted){
+                    return peersThatNotDeleted.size();
                 }
-            });
+            }, millis, TimeUnit.MILLISECONDS);
         }
 
         /**
