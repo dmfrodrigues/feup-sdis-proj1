@@ -1,3 +1,8 @@
+package sdis.Messages;
+
+import sdis.Peer;
+
+import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 
 abstract public class Message {
@@ -33,5 +38,27 @@ abstract public class Message {
 
     public int getLength(){
         return this.getBytes().length;
+    }
+
+    public DatagramPacket getPacket(){
+        return new DatagramPacket(getBytes(), getLength(), inetSocketAddress);
+    }
+
+    public abstract void process(Peer peer);
+
+    public String getVersion(){
+        return version;
+    }
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public Integer getSenderId(){
+        return senderId;
+    }
+
+    public InetSocketAddress getSocketAddress(){
+        return inetSocketAddress;
     }
 }

@@ -15,13 +15,14 @@
 ## Compile
 
 ```sh
-javac src/*.java -d bin
+cd build
+javac ../src/*.java ../src/sdis/*.java ../src/sdis/*/*.java -cp ../src -d .
 ```
 
 ## Run
 
 ```sh
-cd bin
+cd build
 java PeerDriver VERSION PEER_ID SERVICE_ACCESS_POINT MC MC_PORT MDB MDB_PORT MDR MDR_PORT
 ```
 
