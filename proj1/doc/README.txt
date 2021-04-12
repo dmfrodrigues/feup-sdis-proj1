@@ -3,6 +3,8 @@
 - Breno Accioly de Barros Pimentel (up201800170@fe.up.pt)
 - Diogo Miguel Ferreira Rodrigues (up201806429@fe.up.pt)
 
+Requires at least JDK 14.0.2 (2020-07-14)
+
 ## Compile
 
 cd build
