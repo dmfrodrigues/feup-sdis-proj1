@@ -20,7 +20,7 @@ public class MessageFactory {
         String version = headerSplit[0];
         String messageType = headerSplit[1];
         int senderId = Integer.parseInt(headerSplit[2]);
-        String fileId = headerSplit[3];
+        String fileId = headerSplit[3].toUpperCase();
 
         // Messages without body
         switch(messageType) {

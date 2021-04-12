@@ -288,7 +288,7 @@ public class Peer implements PeerInterface {
                         }
                     }
 
-                } catch (IOException | ClassNotFoundException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
