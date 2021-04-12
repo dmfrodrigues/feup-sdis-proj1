@@ -16,3 +16,5 @@ cd build
 java PeerDriver VERSION PEER_ID SERVICE_ACCESS_POINT MC MC_PORT MDB MDB_PORT MDR MDR_PORT
 
 Call "java PeerDriver" for more information on the meaning of each argument.
+
+If the PeerDriver process is killed with SIGINT, it will exit gracefully and unregister itself from RMI.
