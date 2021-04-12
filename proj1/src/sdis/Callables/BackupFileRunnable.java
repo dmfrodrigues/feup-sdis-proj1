@@ -4,10 +4,11 @@ import sdis.Messages.PutchunkMessage;
 import sdis.Peer;
 import sdis.Storage.FileChunkIterator;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class BackupFileRunnable extends ProtocolRunnable {
     /**
@@ -28,7 +29,7 @@ public class BackupFileRunnable extends ProtocolRunnable {
         this.fileChunkIterator = fileChunkIterator;
         this.replicationDegree = replicationDegree;
 
-        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 10 : 1);
+        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 30 : 1);
     }
 
     @Override
@@ -37,13 +38,13 @@ public class BackupFileRunnable extends ProtocolRunnable {
 
         peer.getFileTable().setFileDesiredRepDegree(fileChunkIterator.getFileId(), replicationDegree);
 
-        LinkedList<Future<Void>> futureList = new LinkedList<>();
+        LinkedList<CompletableFuture<Void>> futureList = new LinkedList<>();
 
         for(int i = 0; i < n; ++i){
             // Resolve the futures that are already done
-            Iterator<Future<Void>> it = futureList.iterator();
+            Iterator<CompletableFuture<Void>> it = futureList.iterator();
             while(it.hasNext()){
-                Future<Void> f = it.next();
+                CompletableFuture<Void> f = it.next();
                 if(!f.isDone()) continue;
                 it.remove();
                 if (!popFutureList(f)) return;
@@ -61,7 +62,7 @@ public class BackupFileRunnable extends ProtocolRunnable {
                     BackupChunkSupplier backupChunkCallable = new BackupChunkSupplier(peer, message, replicationDegree);
                     backupChunkCallable.get();
                     return null;
-                }, peer.getExecutor())
+                }, Peer.getExecutor())
             );
         }
         // Empty the futures list
@@ -70,13 +71,19 @@ public class BackupFileRunnable extends ProtocolRunnable {
         }
 
         System.out.println(fileChunkIterator.getFileId() + "\t| Done backing-up file");
+
+        try {
+            fileChunkIterator.close();
+        } catch (IOException e) {
+            System.err.println(fileChunkIterator.getFileId() + "\t| Failed to close file");
+        }
     }
 
-    private boolean popFutureList(Future<Void> f){
+    private boolean popFutureList(CompletableFuture<Void> f){
         try {
             f.get();
         } catch (InterruptedException | ExecutionException e) {
-            System.err.println(fileChunkIterator.getFileId() + " | Aborting backup of file");
+            System.err.println(fileChunkIterator.getFileId() + "\t| Aborting backup of file");
             e.printStackTrace();
             return false;
         }

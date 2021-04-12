@@ -1,11 +1,14 @@
 package sdis.Storage;
 
+import sdis.Peer;
 import sdis.Utils.Utils;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
@@ -50,7 +53,7 @@ public class FileChunkIterator implements Iterator<CompletableFuture<byte[]>> {
         if(length() > MAX_LENGTH) throw new FileTooLargeException(file);
 
         buffer = new byte[this.chunkSize];
-        fileStream = AsynchronousFileChannel.open(file.toPath());
+        fileStream = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ);
         fileId = createFileId();
     }
 
@@ -70,14 +73,14 @@ public class FileChunkIterator implements Iterator<CompletableFuture<byte[]>> {
         digest.update(metadata_bytes, 0, metadata_bytes.length);
 
         // Digest file contents
-        AsynchronousFileChannel inputStream = AsynchronousFileChannel.open(file.toPath());
+        AsynchronousFileChannel inputStream = AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ);
         ByteBuffer buffer = ByteBuffer.allocate(chunkSize);
         int count, position = 0;
         try {
             while ((count = inputStream.read(buffer, position).get()) > 0) {
-                buffer.position(0);
-                buffer.limit(count);
+                buffer.flip();
                 digest.update(buffer);
+                buffer.clear();
                 position += count;
             }
         } catch (ExecutionException | InterruptedException e) {
@@ -122,11 +125,16 @@ public class FileChunkIterator implements Iterator<CompletableFuture<byte[]>> {
             try {
                 int size = f.get();
                 byte[] bufferArray = new byte[size];
-                buffer.get(bufferArray);
+                buffer.flip();
+                buffer.get(bufferArray, 0, size);
                 return bufferArray;
             } catch (Exception e) {
                 throw new CompletionException(e);
             }
-        });
+        }, Peer.getExecutor());
+    }
+
+    public void close() throws IOException {
+        fileStream.close();
     }
 }

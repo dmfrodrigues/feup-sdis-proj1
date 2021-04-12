@@ -68,14 +68,14 @@ public class RestoreChunkSupplier extends ProtocolSupplier<Pair<Integer,byte[]>>
                     serverSocket.close();
                     if (chunk != null) break;
                 } catch (IOException e) {
-                    System.out.println(message.getChunkID() + "\t| Failed to establish a connection: " + e.toString());
+                    System.out.println(message.getChunkID() + "\t| Failed to establish a connection: " + e);
                 }
             }
 
             // Make request
             Future<byte[]> f;
             try {
-                f = peer.getDataRecoverySocketHandler().request(message);
+                f = peer.getDataRecoverySocketHandler().request(message, TIMEOUT_MILLIS);
             } catch (IOException e) {
                 System.err.println(message.getChunkID() + "\t| Failed to make request, trying again");
                 e.printStackTrace();
@@ -85,20 +85,18 @@ public class RestoreChunkSupplier extends ProtocolSupplier<Pair<Integer,byte[]>>
 
             // Wait for request to be satisfied
             try {
-                chunk = f.get(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+                chunk = f.get();
             } catch (InterruptedException e) {
                 System.err.println(message.getChunkID() + "\t| Future execution interrupted, trying again");
                 e.printStackTrace();
             } catch (ExecutionException e) {
                 System.err.println(message.getChunkID() + "\t| Future execution caused an exception, trying again");
                 e.printStackTrace();
-            } catch (TimeoutException e) {
-                f.cancel(true);
-                System.err.println(message.getChunkID() + "\t| Timed out waiting for CHUNK, trying again");
-                e.printStackTrace();
             }
 
-
+            if(chunk == null){
+                System.err.println(message.getChunkID() + "\t| Timed out waiting for CHUNK, trying again");
+            }
         }
 
         if(chunk == null) throw new CompletionException(new RestoreProtocolException("Could not restore chunk " + message.getChunkID()));

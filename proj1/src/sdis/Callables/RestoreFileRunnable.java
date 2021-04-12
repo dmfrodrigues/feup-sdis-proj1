@@ -46,7 +46,7 @@ public class RestoreFileRunnable extends ProtocolRunnable {
         fileChunkOutput = new FileChunkOutput(new File(filename));
         fileId = peer.getFileTable().getFileID(filename);
 
-        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 10 : 1);
+        MAX_FUTURE_QUEUE_SIZE = (peer.requireVersion("1.5") ? 30 : 1);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class RestoreFileRunnable extends ProtocolRunnable {
             // Add new future
             GetchunkMessage message = new GetchunkMessage(peer.getId(), fileId, i, peer.getControlAddress());
             RestoreChunkSupplier restoreChunkCallable = new RestoreChunkSupplier(peer, message);
-            futureList.add(CompletableFuture.supplyAsync(restoreChunkCallable, peer.getExecutor()));
+            futureList.add(CompletableFuture.supplyAsync(restoreChunkCallable, Peer.getExecutor()));
         }
         // Empty the futures list
         while(!futureList.isEmpty()) {
@@ -85,12 +85,8 @@ public class RestoreFileRunnable extends ProtocolRunnable {
         try {
             Pair<Integer,byte[]> chunk = f.get();
             fileChunkOutput.set(chunk.first, chunk.second);
-        } catch (InterruptedException | ExecutionException e) {
-            System.err.println(fileId + " | Aborting restore of file");
-            e.printStackTrace();
-            return false;
-        } catch (IOException e) {
-            System.err.println(fileId + " | Failed to save chunk to fileChunkOutput");
+        } catch (Throwable e) {
+            System.err.println(fileId + "\t| Aborting restore of file");
             e.printStackTrace();
             return false;
         }
