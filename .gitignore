@@ -4,4 +4,5 @@ out/
 *.iml
 bin/
 *.pdf
+!report.pdf
 build/
