@@ -7,7 +7,7 @@ author: |
     Breno Accioly de Barros Pimentel ([`up201800170@fe.up.pt`](mailto:up201800170@fe.up.pt))\
     Diogo Miguel Ferreira Rodrigues ([`up201806429@fe.up.pt`](mailto:up201806429@fe.up.pt))
 date: 12th of April, 2021
-geometry: margin=2.5cm
+geometry: margin=2.0cm
 fontsize: 11pt
 output: pdf_document
 ---
