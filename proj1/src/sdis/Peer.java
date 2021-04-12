@@ -337,7 +337,8 @@ public class Peer implements PeerInterface {
         public Future<Integer> checkDeleted(DeleteMessage deleteMessage, int millis){
             synchronized(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId())){
                 return Peer.getExecutor().submit(() -> {
-                    Future<Integer> f = resolveWhenAllPeersDeleted(getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId()));
+                    Set<Integer> peersThatNotDeleted = getPeer().getFileTable().getFileStoredByPeers(deleteMessage.getFileId());
+                    Future<Integer> f = resolveWhenAllPeersDeleted(peersThatNotDeleted);
                     Integer ret;
                     try {
                         ret = f.get(millis, TimeUnit.MILLISECONDS);
@@ -379,7 +380,6 @@ public class Peer implements PeerInterface {
                     Set<Integer> peersThatStored = storedMessageMap.get(chunkId);
                     synchronized (peersThatStored) {
                         storedMessageMap.get(chunkId).add(storedMessage.getSenderId());
-                        storedMessageMap.get(chunkId).notifyAll();
                     }
                 }
             }
@@ -461,7 +461,6 @@ public class Peer implements PeerInterface {
                     synchronized (dataList) {
                         dataList.clear();
                         for (byte b : data) dataList.add(b);
-                        dataList.notifyAll();
                     }
                 }
             }
@@ -534,7 +533,6 @@ public class Peer implements PeerInterface {
                     synchronized (dataList) {
                         dataList.clear();
                         for (byte b : data) dataList.add(b);
-                        dataList.notifyAll();
                     }
                 }
             }

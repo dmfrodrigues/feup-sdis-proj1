@@ -4,6 +4,7 @@ import sdis.Peer;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -53,6 +54,9 @@ public class GetchunkTCPMessage extends MessageWithChunkNo {
         Socket socket;
         try {
             socket = new Socket(getHostname(), getPort());
+        } catch (ConnectException e) {
+            System.out.println(getChunkID() + "\t| Connection refused");
+            return;
         } catch (IOException e) {
             System.err.println(getChunkID() + "\t| Failed to create socket");
             e.printStackTrace();
@@ -75,7 +79,7 @@ public class GetchunkTCPMessage extends MessageWithChunkNo {
                 return null;
             });
         } catch (IOException e) {
-            System.err.println(getChunkID() + "\t| Failed to find file, although file existance was already checked (INVESTIGATE)");
+            System.err.println(getChunkID() + "\t| Failed to find file, although file existence was already checked (INVESTIGATE)");
             e.printStackTrace();
         }
     }

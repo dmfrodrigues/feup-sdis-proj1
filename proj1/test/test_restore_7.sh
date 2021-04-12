@@ -22,7 +22,7 @@ test () {
     fi
     echo $expected > expected.txt
     echo $output > output.txt
-    if ! diff expected.txt output.txt ; then
+    if ! diff expected.txt output.txt > /dev/null ; then
         echo -e "\e[1m\e[31m[Failed]\e[0m: expected different from output"
         kill $PID1
         kill $PID2
