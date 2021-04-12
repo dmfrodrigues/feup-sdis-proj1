@@ -26,6 +26,10 @@ We do not use `Thread.sleep()` anywhere in our code, thus avoiding busy waits al
 
 Among the two approaches to asynchronous operations (futures and non-busy blocking on future resolution, vs fully-asynchronous future chaining and `then`-functions), the first takes more threads (because the main thread will block while waiting for the thread that is running the future) but is also more readable as it closely resembles synchronous code, and since we are not very familiar with the way `then`-functions and promises work with Java we preferred the first option.
 
+## Eliminate all blocking
+
+We replaced all blocking calls for file-system access using non-blocking `AsynchronousFileChannel` and `CompletableFuture`, to use some `then`-calls and achieve a higher level of asynchronous execution.
+
 # Protocol enhancements
 
 ## Backup enhancements
