@@ -326,7 +326,7 @@ public class Peer implements PeerInterface {
         }
 
         /**
-         * @brief Register that a DELETED message was received.
+         * @brief Register that a DELETED message was received and notifies it.
          *
          * @param deletedMessage Deleted message to be registered
          */
@@ -366,7 +366,7 @@ public class Peer implements PeerInterface {
         }
 
         /**
-         * @brief Returns when there are no peers left to delete file ana notifies it.
+         * @brief Returns when there are no peers left to delete file.
          *
          * @param peersThatNotDeleted Set of peers remaining to delete file
          */
