@@ -188,7 +188,7 @@ public class Peer implements PeerInterface {
             System.err.println("File " + pathname + " not found");
             return;
         }
-        getFileTable().insert(file.getName(), fileChunkIterator.getFileId(), fileChunkIterator.length());
+        getFileTable().insert(pathname, fileChunkIterator.getFileId(), fileChunkIterator.length());
         BackupFileRunnable backupFileRunnable = new BackupFileRunnable(this, fileChunkIterator, replicationDegree);
         CompletableFuture.runAsync(backupFileRunnable);
     }
