@@ -87,7 +87,7 @@ public class RemovedMessage extends MessageWithChunkNo {
                     return;
                 }
 
-                if(peer.getStorageManager().hasChunk(getChunkID())) ++replicationDegree;
+                ++replicationDegree; // Account for the fact the current peer already has the chunk
 
                 System.out.println(message.getChunkID() + "\t| Perceived replication degree is " + numStored);
                 attempts++;
