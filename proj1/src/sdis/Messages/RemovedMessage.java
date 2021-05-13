@@ -37,7 +37,7 @@ public class RemovedMessage extends MessageWithChunkNo {
         if(!peer.getStorageManager().hasChunk(getChunkID()))
             return;
 
-        if(peer.getFileTable().getActualRepDegree(getChunkID()) < peer.getFileTable().getChunkDesiredRepDegree(getChunkID())){
+        if(peer.getFileTable().getActualRepDegree(getChunkID()) < peer.getFileTable().getFileDesiredRepDegree(getFileId())){
 
             // checks if in a random interval a PutChunk message for this chunkID was received
             if(peer.getDataBroadcastSocketHandler().sense(this, 400)) return;
@@ -61,7 +61,7 @@ public class RemovedMessage extends MessageWithChunkNo {
                 e.printStackTrace();
             }
 
-            int replicationDegree = peer.getFileTable().getChunkDesiredRepDegree(getFileId());
+            int replicationDegree = peer.getFileTable().getFileDesiredRepDegree(getFileId());
 
             PutchunkMessage message = new PutchunkMessage(peer.getId(),
                     getFileId(), getChunkNo(),
@@ -86,6 +86,9 @@ public class RemovedMessage extends MessageWithChunkNo {
                     e.printStackTrace();
                     return;
                 }
+
+                if(peer.getStorageManager().hasChunk(getChunkID())) ++replicationDegree;
+
                 System.out.println(message.getChunkID() + "\t| Perceived replication degree is " + numStored);
                 attempts++;
                 wait_millis *= 2;

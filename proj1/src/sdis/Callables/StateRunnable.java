@@ -52,7 +52,7 @@ public class StateRunnable extends ProtocolRunnable {
         for (File file : Objects.requireNonNull(storage.listFiles())) {
                 info += "\tChunk ID     : " + file.getName() + "\n";
                 info += "\tSize (KBytes): " + file.length()/1000 + "\n";
-                info += "\tDesired Replication Degree: " + fileTable.getChunkDesiredRepDegree(file.getName()) + "\n";
+                info += "\tDesired Replication Degree: " + fileTable.getFileDesiredRepDegree(file.getName().split("-")[0]) + "\n";
                 info += "\tPerceived Replication Degree: " + fileTable.getActualRepDegree(file.getName()) + "\n\n";
         }
         info += "\n";

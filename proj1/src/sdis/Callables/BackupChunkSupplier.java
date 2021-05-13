@@ -35,7 +35,7 @@ public class BackupChunkSupplier extends ProtocolSupplier<Void> {
 
     @Override
     public Void get() {
-        peer.getFileTable().setChunkDesiredRepDegree(message.getChunkID(), replicationDegree);
+        peer.getFileTable().setFileDesiredRepDegree(message.getFileId(), replicationDegree);
 
         Set<Integer> peersThatStored = null;
         int numStored=0, attempts=0;
