@@ -12,7 +12,6 @@ public class FileTable implements Serializable {
     private static String table_path;
 
     public static Map<String, Integer> actualRepDegree = new ConcurrentHashMap<>();
-    public static Map<String, Integer> chunkDesiredRepDegree = new ConcurrentHashMap<>();
     public static Map<String, Integer> fileDesiredRepDegree = new ConcurrentHashMap<>();
 
     /**
@@ -63,16 +62,8 @@ public class FileTable implements Serializable {
         save();
     }
 
-    public synchronized void setChunkDesiredRepDegree(String chunkID, int value){
-        chunkDesiredRepDegree.put(chunkID, value);
-        save();
-    }
-
-    public int getActualRepDegree(String fileID){
-        return actualRepDegree.getOrDefault(fileID, 0);
-    }
-    public int getChunkDesiredRepDegree(String fileID){
-        return chunkDesiredRepDegree.getOrDefault(fileID, 0);
+    public int getActualRepDegree(String chunkID){
+        return actualRepDegree.getOrDefault(chunkID, 0);
     }
     public int getFileDesiredRepDegree(String fileID){
         return fileDesiredRepDegree.getOrDefault(fileID, 0);
@@ -146,7 +137,6 @@ public class FileTable implements Serializable {
             ObjectOutputStream os = new ObjectOutputStream(o);
             os.writeObject(table);
             os.writeObject(actualRepDegree);
-            os.writeObject(chunkDesiredRepDegree);
             os.writeObject(fileDesiredRepDegree);
             os.writeObject(fileStoredByPeers);
             os.writeObject(peersPendingDelete);
@@ -166,7 +156,6 @@ public class FileTable implements Serializable {
             ObjectInputStream is = new ObjectInputStream(i);
             table = (Map<String, Pair<String, Integer>>) is.readObject();
             actualRepDegree = (Map<String, Integer>) is.readObject();
-            chunkDesiredRepDegree = (Map<String, Integer>) is.readObject();
             fileDesiredRepDegree = (Map<String, Integer>) is.readObject();
             fileStoredByPeers = (Map<String, HashSet<Integer>>) is.readObject();
             peersPendingDelete = (Map<Integer, HashSet<String>>) is.readObject();

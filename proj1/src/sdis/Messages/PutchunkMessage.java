@@ -72,7 +72,7 @@ public class PutchunkMessage extends MessageWithBody {
             }
             System.out.println(chunkId + "\t| Saved chunk");
 
-            peer.getFileTable().setChunkDesiredRepDegree(chunkId, replicationDeg);
+            peer.getFileTable().setFileDesiredRepDegree(getFileId(), replicationDeg);
             peer.getFileTable().incrementActualRepDegree(chunkId);
 
             peer.getDataBroadcastSocketHandler().register(getChunkID(), getBody());
