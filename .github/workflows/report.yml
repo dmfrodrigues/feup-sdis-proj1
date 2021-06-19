@@ -1,0 +1,28 @@
+name: report
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install pandoc
+      run: |
+        # cd ~
+        # wget https://github.com/jgm/pandoc/releases/download/2.9.2.1/pandoc-2.9.2.1-1-amd64.deb
+        # sudo apt install -y ./pandoc-2.9.2.1-1-amd64.deb
+        sudo apt install -y pandoc
+
+    - name: Install other dependencies with apt
+      run: |
+        sudo apt install -y texlive-latex-extra
+    
+    - name: Build report
+      run: |
+        pandoc report-config.md report.md -o report.pdf

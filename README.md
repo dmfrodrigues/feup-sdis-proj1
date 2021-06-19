@@ -1,5 +1,7 @@
 # SDIS Project 1 - Distributed Backup Service
 
+[![build](https://github.com/dmfrodrigues/feup-sdis-proj1/actions/workflows/build.yml/badge.svg)](https://github.com/dmfrodrigues/feup-sdis-proj1/actions/workflows/build.yml)
+
 - **Project name:** Distributed Backup Service
 - **Short description:** Distributed backup service across a local area network
 - **Environment:** Unix/Windows console
@@ -11,6 +13,8 @@
 - **Group members:**
     - [Diogo Miguel Ferreira Rodrigues](https://github.com/dmfrodrigues) (up201806429@fe.up.pt)
     - [Breno Accioly de Barros Pimentel](https://github.com/BrenoAccioly) (up201800170@fe.up.pt)
+
+Requires at least JDK 14.0.2 (2020-07-14)
 
 ## Compile
 
@@ -27,3 +31,5 @@ java PeerDriver VERSION PEER_ID SERVICE_ACCESS_POINT MC MC_PORT MDB MDB_PORT MDR
 ```
 
 Call `java PeerDriver` for more information on the meaning of each argument.
+
+If the PeerDriver process is killed with SIGINT, it will exit gracefully and unregister itself from RMI.
