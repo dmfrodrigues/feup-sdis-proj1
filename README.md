@@ -1,6 +1,7 @@
 # SDIS Project 1 - Distributed Backup Service
 
 [![build](https://github.com/dmfrodrigues/feup-sdis-proj1/actions/workflows/build.yml/badge.svg)](https://github.com/dmfrodrigues/feup-sdis-proj1/actions/workflows/build.yml)
+[![report](https://github.com/dmfrodrigues/feup-sdis-proj1/actions/workflows/report.yml/badge.svg)](https://github.com/dmfrodrigues/feup-sdis-proj1/actions/workflows/report.yml)
 
 - **Project name:** Distributed Backup Service
 - **Short description:** Distributed backup service across a local area network

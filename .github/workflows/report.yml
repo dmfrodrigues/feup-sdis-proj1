@@ -27,3 +27,9 @@ jobs:
       run: |
         cd doc
         pandoc report-config.md report.md -o report.pdf
+
+    - name: Upload report
+      uses: actions/upload-artifact@v2
+      with:
+        name: report
+        path: doc/report.pdf
