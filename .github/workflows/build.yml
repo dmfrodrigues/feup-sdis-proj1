@@ -19,4 +19,5 @@ jobs:
     - name: Build
       run: |
         mkdir build
+        cd build
         javac ../src/*.java ../src/sdis/*.java ../src/sdis/*/*.java -cp ../src -d .
